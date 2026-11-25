@@ -323,7 +323,7 @@ function viewDay(date){
       <div class="chips">${personChips(pf?[pf]:[],'pf','👪 All')}</div></div>
   </div>
   ${!S.items.length?`<div class="card" style="text-align:center"><div style="font-size:40px">🗾</div><h2>Welcome!</h2>
-    <p class="muted">Load the plan file the family sent you (WhatsApp/email → save it), or start adding your own plans with ＋.</p>
+    <p class="muted">Tap the plan link the family sent you, or share their plan file to “Japan Trip”. You can also start adding your own plans with ＋.</p>
     <input type="file" id="importfile" accept=".json,application/json,text/plain" hidden>
     <button class="btn pri full" data-a="import">📥 Load a plan file</button></div>`:''}
   ${untimed.length?`<div class="untimed"><div class="lbl">Anytime today</div><div class="chips wrap">${untimed.map(i=>`<button class="chip" data-a="open" data-id="${i.id}">${i.status==='done'?'✅':esc(i.emoji)} ${esc(i.title)}</button>`).join('')}</div></div>`:''}
@@ -478,10 +478,10 @@ function viewMore(){
     ${S.people.map(p=>`<div class="pp"><input class="emo" data-pp="emoji" data-pid="${p.id}" value="${esc(p.emoji)}"><input data-pp="name" data-pid="${p.id}" value="${esc(p.name)}"><input type="color" data-pp="color" data-pid="${p.id}" value="${esc(p.color||'#888888')}"><button class="btn sm" data-a="pdel-person" data-pid="${p.id}">✕</button></div>`).join('')}
     <form class="row" data-form="person-add"><input name="t" placeholder="Add a person (name)…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form></div>
   <div class="card stack"><h3>💾 Save &amp; share</h3>
-    <div class="muted">Everything is saved on this phone automatically and works offline. To share with family, send them the plan file — when they import it, the newest version of each item wins, so everyone's edits combine.</div>
-    <button class="btn pri full" data-a="share-file">📤 Share plan file (WhatsApp, email…)</button>
-    <div class="btns"><button class="btn" style="flex:1" data-a="download">⬇️ Download backup</button><button class="btn" style="flex:1" data-a="import">📥 Import a plan file</button></div>
-    <button class="btn full" data-a="share-link">🔗 Copy plan as a link</button>
+    <div class="muted">Everything is saved on this phone automatically and works offline. To share, send your plan link — family just tap it and choose <b>Merge</b>. The newest version of each item wins, so everyone's edits combine.</div>
+    <button class="btn pri full" data-a="share-link">📤 Send my plan as a link (WhatsApp…)</button>
+    <div class="btns"><button class="btn" style="flex:1" data-a="share-file">📎 Send as a file</button><button class="btn" style="flex:1" data-a="import">📥 Load a plan file</button></div>
+    <button class="btn full" data-a="download">⬇️ Download a backup</button>
     <input type="file" id="importfile" accept=".json,application/json,text/plain" hidden>
     <div class="muted">Last shared/exported: ${esc(ago)}</div></div>
   <div class="card"><h3>📷 QR code</h3><div class="muted" style="margin:4px 0">${location.protocol.startsWith('http')?'Scan to open this planner on another phone, then “Add to Home screen”. Send them the plan file to load your latest inputs.':'QR works once the planner is hosted online (see README). Right now it is opened as a local file.'}</div>
@@ -669,8 +669,17 @@ function render(){
   if(tab==='more')drawQR();
   lastRoute=key;
 }
+// A plan file (or link) shared to the installed app from WhatsApp etc. arrives via sw.js as #shared
+async function handleShared(){
+  history.replaceState(null,'',location.pathname+'#/day');render();
+  try{const c=await caches.open('jtp-share');const r=await c.match('shared-plan');await c.delete('shared-plan');if(!r)return;
+    const t=(await r.text()).trim();const i=t.indexOf('#import=');
+    askImport(parseIncoming(i>=0?await b64decompress(t.slice(i+8).split(/\s/)[0]):t))}
+  catch(e){toast('Could not read the shared plan: '+e.message)}
+}
 window.addEventListener('hashchange',async()=>{
   if(location.hash.startsWith('#import=')){await handleImportHash();return}
+  if(location.hash==='#shared'){await handleShared();return}
   closeSheet();render();
 });
 async function handleImportHash(){
@@ -678,7 +687,7 @@ async function handleImportHash(){
   render();
   try{askImport(parseIncoming(await b64decompress(z)))}catch(e){toast('That link could not be read: '+e.message)}
 }
-if(location.hash.startsWith('#import='))handleImportHash();else render();
+if(location.hash.startsWith('#import='))handleImportHash();else if(location.hash==='#shared')handleShared();else render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>

@@ -1,2 +1,3 @@
 # Plan files hold personal trip details: never upload them
 *.json
+_*
