@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#c8102e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Japan Trip">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Japan Trip Planner</title>
+<style>
+:root{--bg:#faf7f2;--card:#fff;--ink:#1d1b19;--mute:#7a736b;--line:#e6dfd5;--red:#c8102e;--red2:#fde8eb;
+--act:#2b6cb0;--actbg:#e7f0fb;--meal:#c05621;--mealbg:#fdf0e4;--travel:#5a5f69;--travelbg:#eceff3;
+--done:#2f855a;--donebg:#e3f3e8;--warn:#b7791f;--warnbg:#fff5d6;--shadow:0 1px 3px rgba(0,0,0,.08)}
+@media (prefers-color-scheme:dark){:root{--bg:#141312;--card:#201e1c;--ink:#f1ede7;--mute:#a59d93;--line:#36312c;--red:#ff4d5e;--red2:#3a1a1e;
+--act:#7fb2f0;--actbg:#1b2a3d;--meal:#f6a560;--mealbg:#3a2616;--travel:#b5bcc8;--travelbg:#262a30;--done:#68d391;--donebg:#173323;--warn:#f6c453;--warnbg:#3a3015}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Noto Sans SC","PingFang SC",sans-serif;-webkit-tap-highlight-color:transparent}
+body{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+#app{max-width:680px;margin:0 auto}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;font-size:16px;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:70px;resize:vertical}
+input[type=time]{padding:8px 6px}
+input[type=checkbox]{width:auto}
+h2{font-size:18px;margin:0 0 10px}
+h3{font-size:15px;margin:0}
+.top{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 12px 6px;padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--line)}
+.tt{display:flex;align-items:center;gap:8px}
+.tt h1{font-size:18px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{border:0;background:none;font-size:22px;width:38px;height:38px;border-radius:10px;flex:0 0 auto}
+.ib:active{background:var(--line)}
+.strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 0 4px}
+.strip::-webkit-scrollbar,.chips::-webkit-scrollbar{display:none}
+.dchip{flex:0 0 auto;width:46px;text-align:center;padding:4px 0 3px;border-radius:12px;background:var(--card);border:1px solid var(--line);text-decoration:none}
+.dchip small{display:block;font-size:11px;color:var(--mute)}
+.dchip b{font-size:17px;display:block;line-height:1.1}
+.dchip i{display:block;height:5px;width:5px;border-radius:3px;margin:2px auto 0;background:transparent}
+.dchip i.p{background:var(--act)} .dchip i.d{background:var(--done)}
+.dchip.on{background:var(--red);color:#fff;border-color:var(--red)} .dchip.on small{color:#fff}
+.dchip.today{outline:2px solid var(--warn)}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:4px 0}
+.chips.wrap{flex-wrap:wrap;overflow:visible}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13.5px;white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.food.on{background:var(--meal);border-color:var(--meal);color:#fff}
+.seg{display:flex;background:var(--line);border-radius:10px;padding:2px;gap:2px}
+.seg button{flex:1;min-width:0;border:0;background:none;padding:7px 4px;border-radius:8px;color:var(--mute);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow);font-weight:600}
+.dayhead{display:flex;align-items:flex-start;gap:8px;padding:8px 2px 2px}
+.dayhead .dt{flex:1}
+.dayhead .dt b{font-size:16px} .dayhead .dt small{display:block;color:var(--mute);font-size:12.5px}
+.ctl{display:flex;gap:8px;align-items:center;padding-top:4px}
+.ctl .seg{flex:0 0 auto}
+.ctl .seg button{flex:0 0 auto;padding:6px 10px;overflow:visible}
+.ctl .chips{flex:1}
+.untimed{margin:8px 12px 0}
+.untimed .lbl{margin-bottom:4px}
+.lbl{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px}
+.tl{position:relative;margin:14px 12px 30px}
+.hr{position:absolute;left:0;right:0;border-top:1px solid var(--line);height:0}
+.hr span{position:absolute;top:-8px;left:0;font-size:11px;color:var(--mute);background:var(--bg);padding-right:4px}
+.tl-grid{position:absolute;top:0;bottom:0;left:44px;right:0}
+.lanes{position:absolute;top:0;bottom:0;left:44px;right:0;pointer-events:none}
+.blk{position:absolute;pointer-events:auto;border-radius:8px;padding:3px 28px 3px 6px;overflow:hidden;font-size:12.5px;border-left:4px solid;box-shadow:var(--shadow);cursor:pointer;scroll-margin-top:210px}
+.t-act{background:var(--actbg);border-color:var(--act)}
+.t-meal{background:var(--mealbg);border-color:var(--meal)}
+.t-travel{background:var(--travelbg);border-color:var(--travel)}
+.blk.s-done{background:var(--donebg);border-color:var(--done)}
+.blk.s-skip{opacity:.45} .blk.s-skip .bt{text-decoration:line-through}
+.blk.tent{border-style:dashed;border-width:1.5px 1.5px 1.5px 4px}
+.blk.ghost{opacity:.38}
+.blk.narrow{padding:3px 4px 22px;font-size:11.5px}
+.blk.narrow .tick{top:auto;bottom:2px;width:20px;height:20px;line-height:16px;font-size:11px}
+.blk .bt{font-weight:600;line-height:1.2;word-break:break-word}
+.blk .bm{color:var(--mute);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tick{position:absolute;right:3px;top:3px;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--mute);background:var(--card);font-size:13px;line-height:20px;text-align:center;padding:0;color:#fff}
+.s-done .tick,.tk.on,.sub.done .tk{background:var(--done);border-color:var(--done);color:#fff}
+.nowline{position:absolute;left:38px;right:0;border-top:2px solid var(--red);z-index:5;pointer-events:none}
+.nowline:before{content:"";position:absolute;left:0;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+.hint{font-size:12px;color:var(--mute);text-align:center;margin:-18px 0 20px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:30}
+nav a{flex:1;text-align:center;padding:6px 0 7px;color:var(--mute);text-decoration:none;font-size:11.5px}
+nav a b{display:block;font-size:21px;font-weight:normal;line-height:1.3}
+nav a.on{color:var(--red);font-weight:600}
+.fab{position:fixed;right:max(16px,calc(50% - 324px));bottom:calc(78px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--red);color:#fff;font-size:32px;line-height:1;border:0;box-shadow:0 4px 14px rgba(0,0,0,.28);z-index:25}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:680px;border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;animation:up .18s ease-out}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.row.sm{gap:6px;margin-top:4px}
+.row.sm input{padding:5px 8px;font-size:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.grid3>select{grid-column:1/-1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.stack>*+*{margin-top:8px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px;font-size:14.5px;text-align:center;text-decoration:none;display:inline-block}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+.btn.sm{padding:5px 9px;font-size:13px}
+.btn.full{width:100%}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 12px}
+.card.hl{border-color:var(--done);background:var(--donebg)}
+.sh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sh span{color:var(--mute);font-size:13px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:0 0 8px}
+.bar i{display:block;height:100%;background:var(--done);border-radius:3px}
+.dtop.t-act{background:var(--actbg)} .dtop.t-meal{background:var(--mealbg)} .dtop.t-travel{background:var(--travelbg)}
+.dtop{border-left:0}
+.emo{flex:0 0 52px!important;text-align:center;font-size:22px;padding:4px}
+.ttl{font-size:19px!important;font-weight:650}
+.tog{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}
+.tog input{width:20px;height:20px}
+.maplink{flex:0 0 auto!important;text-decoration:none;font-size:13px;white-space:nowrap}
+.sub{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.sub:first-child{border-top:0}
+.sub .sb{flex:1;min-width:0}
+.sub .sb>input{font-weight:600;padding:6px 8px}
+.sub.done .sb>input{text-decoration:line-through;color:var(--mute)}
+.tk{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:2px solid var(--mute);background:var(--card);padding:0;font-size:15px;color:#fff;margin-top:3px}
+.sbtn{display:flex;flex-direction:column;gap:2px}
+.sbtn button{border:0;background:none;color:var(--mute);font-size:14px;padding:3px 6px}
+form.row{margin-top:8px}
+.stars button{border:0;background:none;font-size:26px;padding:0 2px;color:var(--line)}
+.stars button.on{color:#f0b429}
+.place{border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:8px}
+.place.chosen{border-color:var(--meal);background:var(--mealbg)}
+.place .star{flex:0 0 38px!important;font-size:20px;border:0;background:none}
+.order{display:flex;align-items:center;gap:8px;margin-top:6px}
+.order span{flex:0 0 96px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--line);color:var(--mute);margin-right:4px;vertical-align:1px}
+.badge.tent{background:var(--warnbg);color:var(--warn)}
+.badge.meal{background:var(--mealbg);color:var(--meal)}
+.list .li{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.list .li:first-child{border-top:0}
+.li .lb{flex:1;min-width:0;cursor:pointer}
+.li .lb b{font-weight:600}
+.li .lb small{display:block;color:var(--mute);font-size:12.5px}
+.li.done .lb b{color:var(--mute)}
+.ring{display:flex;align-items:center;gap:16px}
+.ring svg{flex:0 0 auto}
+.ring .big{font-size:28px;font-weight:700;line-height:1}
+.mday{padding:10px 12px;margin:0}
+.mday+.mday{border-top:1px solid var(--line)}
+.mday .mh{font-weight:600;margin-bottom:4px}
+.mday .mh small{color:var(--mute);font-weight:400}
+.mslot{display:flex;gap:6px;align-items:flex-start;padding:3px 0;font-size:14px}
+.mslot .mk{flex:0 0 74px;color:var(--mute);font-size:13px;padding-top:2px}
+.mslot .mv{flex:1;display:flex;flex-direction:column;gap:2px}
+.mslot a{text-decoration:none}
+.mslot .add{border:1px dashed var(--line);background:none;border-radius:8px;padding:2px 10px;color:var(--mute);font-size:13px;align-self:flex-start}
+.frow{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line);cursor:pointer}
+.frow:first-child{border-top:0}
+.frow .fe{font-size:26px;flex:0 0 34px;text-align:center}
+.frow .fb{flex:1;min-width:0}
+.frow .fb small{color:var(--mute)}
+.frow .fm{font-size:12px;color:var(--mute)}
+.frow .fr{display:flex;align-items:center;gap:6px}
+.av{font-size:15px;letter-spacing:-3px}
+.pp{display:grid;grid-template-columns:52px 1fr 44px 36px;gap:6px;align-items:center;margin-bottom:6px}
+.pp input[type=color]{padding:2px;height:38px}
+.qr{display:flex;justify-content:center;padding:8px;background:#fff;border-radius:12px;margin-top:8px}
+.qr svg{width:220px;height:220px}
+.muted{color:var(--mute);font-size:13px}
+.empty{color:var(--mute);text-align:center;padding:16px 8px;font-size:14px}
+#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+details summary{cursor:pointer;color:var(--mute);font-size:14px;margin:6px 0}
+.wishpick{margin-top:12px}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav id="nav">
+  <a href="#/day" data-tab="day"><b>📅</b>Days</a>
+  <a href="#/bucket" data-tab="bucket"><b>✅</b>Bucket list</a>
+  <a href="#/food" data-tab="food"><b>🍜</b>Food</a>
+  <a href="#/more" data-tab="more"><b>👪</b>Family &amp; share</a>
+</nav>
+<div id="sheetwrap"></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* ====================== basics ====================== */
+const KEY='jtp-data-v1', ME_KEY='jtp-me';
+const QR_SRC='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+const HP=56; // px per hour on the timeline
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let _n=0;const uid=()=>Date.now().toString(36)+(_n++).toString(36)+Math.random().toString(36).slice(2,6);
+const now=()=>Date.now();
+const toMin=t=>{if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+(m||0)};
+const fromMin=m=>{m=Math.max(0,Math.min(1439,Math.round(m)));return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dparse=d=>{const[y,m,dd]=d.split('-').map(Number);return new Date(y,m-1,dd)};
+const dfmt=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+const dlabel=d=>{if(!d)return'Wishlist';const x=dparse(d);return`${DOW[x.getDay()]} ${x.getDate()} ${MON[x.getMonth()]}`};
+const today=()=>dfmt(new Date());
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const TYPE={act:{label:'Activity',emoji:'📍'},meal:{label:'Meal',emoji:'🍽️'},travel:{label:'Travel',emoji:'✈️'}};
+const KINDS=['Breakfast','Lunch','Dinner','Snack'];
+const KIND_EMO={Breakfast:'🍳',Lunch:'🍱',Dinner:'🍽️',Snack:'🍡'};
+const KIND_TIME={Breakfast:'08:00',Lunch:'12:30',Snack:'15:30',Dinner:'18:30'};
+function kindFor(start){const m=toMin(start);if(m==null)return'Lunch';if(m<630)return'Breakfast';if(m<900)return'Lunch';if(m<1050)return'Snack';return'Dinner'}
+const mapUrl=q=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+
+/* ====================== data ====================== */
+const FOOD_SEED=[
+['Takoyaki','章鱼烧','🐙','Osaka'],['Okonomiyaki','大阪烧','🥞','Osaka'],['Kushikatsu','串炸','🍢','Osaka'],
+['Kobe beef','神户牛','🥩','Kobe'],['Wagyu yakiniku','和牛烧肉','🔥','Anywhere'],['Kaiten (conveyor) sushi','回转寿司','🍣','Anywhere'],
+['Kaisen-don seafood bowl','海鲜丼','🐟','Hokkaido'],['Hokkaido crab','北海道蟹','🦀','Hokkaido'],['Uni (sea urchin)','海胆','🟠','Hokkaido'],
+['Hokkaido scallops','北海道扇贝','🐚','Hokkaido'],['Miso ramen','味噌拉面','🍜','Sapporo'],['Soup curry','汤咖喱','🍛','Sapporo'],
+['Genghis Khan lamb BBQ','成吉思汗烤肉','🍖','Sapporo'],['Hokkaido soft-serve','北海道软冰淇淋','🍦','Hokkaido'],['LeTAO cheesecake','LeTAO芝士蛋糕','🍰','Otaru'],
+['Shiroi Koibito cookies','白色恋人','🍪','Sapporo'],['Royce chocolate','Royce生巧克力','🍫','Hokkaido'],['Matcha sweets','抹茶甜点','🍵','Kyoto'],
+['Yatsuhashi','八桥饼','🥟','Kyoto'],['Tamagoyaki (Nishiki)','玉子烧','🍳','Kyoto'],['Yomogi mochi (Nakatanidou)','艾草麻糬','🍡','Nara'],
+['Kakinoha sushi','柿叶寿司','🍃','Nara'],['Butterbeer','黄油啤酒','🍺','USJ'],['Tonkatsu','炸猪排','🐷','Anywhere'],
+['Tempura','天妇罗','🍤','Anywhere'],['Udon','乌冬面','🍜','Anywhere'],['Gyoza','煎饺','🥟','Anywhere'],['Karaage','日式炸鸡','🍗','Anywhere'],
+['Japanese curry rice','咖喱饭','🍛','Anywhere'],['Taiyaki','鲷鱼烧','🐟','Anywhere'],['Konbini onigiri','便利店饭团','🍙','Anywhere'],
+['Melon pan','菠萝包','🍈','Anywhere'],['Strawberry daifuku','草莓大福','🍓','Anywhere'],['Christmas market sausage & hot chocolate','圣诞市集热巧克力','🌭','Sapporo']];
+
+function newMeal(start,o={}){return{kind:o.kind||kindFor(start),places:(o.places||[]).map(p=>({id:uid(),name:p,area:'',price:'',note:'',chosen:false})),foods:o.foods||[],orders:{}}}
+function newItem(o){
+  const it=Object.assign({id:uid(),type:'act',day:'',start:'',end:'',title:'',emoji:'',who:[],status:'plan',tentative:false,place:'',area:'',notes:'',subs:[],actual:{},u:now()},o);
+  if(!it.emoji)it.emoji=TYPE[it.type].emoji;
+  if(it.type==='meal'&&!it.meal)it.meal=newMeal(it.start);
+  return it;
+}
+const newSub=t=>({id:uid(),title:t,time:'',note:'',done:false});
+
+function seed(){
+  const t=now();
+  const people=[['Me','🧔','#2b6cb0'],['Wife','👩','#d53f8c'],['Daughter','👧','#805ad5'],['Grandpa','👴','#2f855a'],['Grandma','👵','#c05621']]
+    .map(([name,emoji,color])=>({id:uid(),name,emoji,color,u:t}));
+  const foods=FOOD_SEED.map(([name,zh,emoji,region])=>({id:uid(),name,zh,emoji,region,tried:{},u:t}));
+  // Starts blank on purpose: the real itinerary is loaded from a plan file, so nothing personal is in the public page.
+  const items=[];
+  const st=new Date(),en=new Date();en.setDate(en.getDate()+6);const days={};
+  return {app:'japan-trip-planner',v:1,trip:{name:'My Japan Trip',start:dfmt(st),end:dfmt(en),u:0},people,foods,items,days,deleted:{},lastShared:0};
+}
+
+let S=load()||seed();
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.items)return s}catch(e){}return null}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Could not save: '+e.message)}}
+function touch(o){if(o)o.u=now();save()}
+save();
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+
+const getItem=id=>S.items.find(i=>i.id===id);
+const getFood=id=>S.foods.find(f=>f.id===id);
+const person=id=>S.people.find(p=>p.id===id);
+function meId(){const m=ls.get(ME_KEY,'');return person(m)?m:(S.people[0]?.id||'')}
+function tripDays(){const out=[];const x=dparse(S.trip.start),e=dparse(S.trip.end);let g=0;while(x<=e&&g++<120){out.push(dfmt(x));x.setDate(x.getDate()+1)}return out}
+function defaultDay(){const d=tripDays(),t=today();return d.includes(t)?t:d[0]}
+function remove(id){S.deleted[id]=now();S.items=S.items.filter(i=>i.id!==id);save()}
+
+/* view state (per device, not shared) */
+let pf=ls.get('jtp-pf',''); if(pf&&!person(pf))pf='';
+let mode=ls.get('jtp-mode','plan');
+let foodTab=ls.get('jtp-foodtab','plan'),foodFilter='all';
+let curDay=null,curItemId=null,curFoodId=null,scrolledDay=null,lastRoute='',qa=null;
+const visible=i=>!pf||!i.who.length||i.who.includes(pf);
+
+function whoMini(ids){
+  const ps=ids.map(person).filter(Boolean);
+  if(!ps.length)return'<span class="muted">All</span>';
+  return '<span class="av">'+ps.slice(0,5).map(p=>esc(p.emoji)).join('')+(ps.length>5?'+'+(ps.length-5):'')+'</span>';
+}
+function personChips(selected,act,allLabel='👪 Everyone'){
+  return `<button class="chip ${!selected.length?'on':''}" data-a="${act}" data-v="">${allLabel}</button>`+
+    S.people.map(p=>`<button class="chip ${selected.includes(p.id)?'on':''}" data-a="${act}" data-v="${p.id}">${esc(p.emoji)} ${esc(p.name)}</button>`).join('');
+}
+
+/* ====================== DAY VIEW ====================== */
+function layoutLanes(list){
+  list.sort((a,b)=>a._s-b._s||(b._e-b._s)-(a._e-a._s));
+  let cluster=[],end=-1;const out=[];
+  const flush=()=>{const cols=[];for(const it of cluster){let c=cols.findIndex(e=>e<=it._s);if(c<0){c=cols.length;cols.push(0)}cols[c]=it._e;it._c=c}for(const it of cluster)it._n=cols.length;out.push(...cluster);cluster=[];end=-1};
+  for(const it of list){if(cluster.length&&it._s>=end)flush();cluster.push(it);end=Math.max(end,it._e)}
+  if(cluster.length)flush();return out;
+}
+function viewDay(date){
+  const days=tripDays();if(!days.includes(date))date=curDay&&days.includes(curDay)?curDay:defaultDay();
+  curDay=date;
+  const di=S.days[date]||{};
+  const all=S.items.filter(i=>i.day===date&&visible(i));
+  const actual=mode==='actual';
+  const timed=[],untimed=[];
+  for(const i of all){
+    const st=actual&&i.status==='done'&&i.actual?.start?i.actual.start:i.start;
+    const en=actual&&i.status==='done'&&i.actual?.end?i.actual.end:i.end;
+    if(!st){untimed.push(i);continue}
+    const s=toMin(st);let e=toMin(en);if(e==null||e<=s)e=s+60;
+    timed.push(Object.assign(Object.create(null),{it:i,_s:s,_e:e}));
+  }
+  let sh=7,eh=22;for(const t of timed){sh=Math.min(sh,Math.floor(t._s/60));eh=Math.max(eh,Math.ceil(t._e/60))}
+  eh=Math.min(eh,24);
+  layoutLanes(timed);
+  const strip=days.map(d=>{const its=S.items.filter(i=>i.day===d&&visible(i)&&i.type!=='travel');const dd=its.length&&its.every(i=>i.status!=='plan');const x=dparse(d);
+    return `<a href="#/day/${d}" id="dc-${d}" class="dchip ${d===date?'on':''} ${d===today()?'today':''}"><small>${DOW[x.getDay()]}</small><b>${x.getDate()}</b><i class="${its.length?(dd?'d':'p'):''}"></i></a>`}).join('');
+  const nPlan=all.filter(i=>i.type!=='travel').length,nDone=all.filter(i=>i.status==='done'&&i.type!=='travel').length;
+  let hours='';for(let h=sh;h<=eh;h++)hours+=`<div class="hr" style="top:${(h-sh)*HP}px"><span>${String(h%24).padStart(2,'0')}:00</span></div>`;
+  const blocks=timed.map(t=>{const i=t.it;const top=(t._s-sh*60)/60*HP,h=Math.max(26,(t._e-t._s)/60*HP-2);
+    const ghost=actual&&i.status!=='done'&&i.type!=='travel';
+    const subs=i.subs?.length?` · ${i.subs.filter(s=>s.done).length}/${i.subs.length}`:'';
+    const mealInfo=i.type==='meal'?(i.meal.places.find(p=>p.chosen)?.name||''):'';
+    const w=100/t._n;
+    return `<div class="blk t-${i.type} s-${i.status} ${i.tentative?'tent':''} ${ghost?'ghost':''} ${t._n>2?'narrow':''}" data-a="open" data-id="${i.id}" style="top:${top}px;height:${h}px;left:calc(${t._c*w}% + 2px);width:calc(${w}% - 4px)">
+      <div class="bt">${esc(i.emoji)} ${esc(i.title)}</div>
+      <div class="bm">${fromMin(t._s)}–${fromMin(t._e)}${subs} ${whoMini(i.who)}${mealInfo?' · '+esc(mealInfo):''}</div>
+      ${i.type!=='travel'?`<button class="tick" data-a="quickdone" data-id="${i.id}">${i.status==='done'?'✓':''}</button>`:''}</div>`}).join('');
+  let nowl='';if(date===today()){const n=new Date(),m=n.getHours()*60+n.getMinutes();if(m>=sh*60&&m<=eh*60)nowl=`<div class="nowline" style="top:${(m-sh*60)/60*HP}px"></div>`}
+  return `<div class="top">
+    <div class="tt"><h1>🇯🇵 ${esc(S.trip.name)}</h1><button class="ib" data-a="edit-day" title="Edit day">✏️</button></div>
+    <div class="strip" id="strip">${strip}</div>
+    <div class="dayhead"><div class="dt"><b>${esc(dlabel(date))} · ${esc(di.title||'')}</b><small>${esc(di.note||'')}${di.note?' · ':''}${nDone}/${nPlan} done</small></div></div>
+    <div class="ctl"><div class="seg"><button data-a="mode" data-v="plan" class="${!actual?'on':''}">Plan</button><button data-a="mode" data-v="actual" class="${actual?'on':''}">Actual</button></div>
+      <div class="chips">${personChips(pf?[pf]:[],'pf','👪 All')}</div></div>
+  </div>
+  ${!S.items.length?`<div class="card" style="text-align:center"><div style="font-size:40px">🗾</div><h2>Welcome!</h2>
+    <p class="muted">Load the plan file the family sent you (WhatsApp/email → save it), or start adding your own plans with ＋.</p>
+    <input type="file" id="importfile" accept=".json,application/json,text/plain" hidden>
+    <button class="btn pri full" data-a="import">📥 Load a plan file</button></div>`:''}
+  ${untimed.length?`<div class="untimed"><div class="lbl">Anytime today</div><div class="chips wrap">${untimed.map(i=>`<button class="chip" data-a="open" data-id="${i.id}">${i.status==='done'?'✅':esc(i.emoji)} ${esc(i.title)}</button>`).join('')}</div></div>`:''}
+  <div class="tl" style="height:${(eh-sh)*HP+10}px">${hours}<div class="tl-grid" data-a="tl-tap" data-sh="${sh}"></div><div class="lanes">${blocks}</div>${nowl}</div>
+  <div class="hint">${actual?'Actual mode: faded = planned but not done yet. ＋ logs what you did.':'Tap an empty time to add · tap a block for details · ○ to tick off'}</div>
+  <button class="fab" data-a="qa">＋</button>`;
+}
+
+/* ====================== ITEM DETAIL ====================== */
+function viewItem(it){
+  curItemId=it.id;const T=TYPE[it.type]||TYPE.act;const days=tripDays();
+  const st=s=>`<button data-a="status" data-v="${s}" class="${it.status===s?'on':''}">${{plan:'📋 Planned',done:'✅ Done',skip:'⏭️ Skipped'}[s]}</button>`;
+  return `<div class="top dtop t-${it.type}"><div class="tt"><button class="ib" data-a="back">‹</button><h1>${T.emoji} ${T.label}${it.day?' · '+dlabel(it.day):' · ⭐ Wishlist'}</h1>
+    <button class="ib" data-a="dup" title="Duplicate">⧉</button><button class="ib" data-a="del" title="Delete">🗑️</button></div></div>
+  <div class="card">
+    <div class="row"><input class="emo" data-f="emoji" value="${esc(it.emoji)}" maxlength="4"><input class="ttl" data-f="title" value="${esc(it.title)}" placeholder="Title"></div>
+    <div class="grid3"><select data-f="day"><option value="">⭐ Wishlist (no date)</option>${days.map(d=>`<option value="${d}" ${d===it.day?'selected':''}>${dlabel(d)}</option>`).join('')}</select>
+      <input type="time" data-f="start" value="${esc(it.start)}"><input type="time" data-f="end" value="${esc(it.end)}"></div>
+    <div class="lbl">Who's going</div><div class="chips wrap">${personChips(it.who,'who')}</div>
+    <div class="lbl">Status</div><div class="seg">${st('plan')}${st('done')}${st('skip')}</div>
+    <div class="row" style="margin-top:8px"><label class="tog" style="margin:0"><input type="checkbox" data-f="tentative" ${it.tentative?'checked':''}> 🤔 Option / still deciding</label>
+      <select data-f="type" style="flex:0 0 130px">${Object.entries(TYPE).map(([k,v])=>`<option value="${k}" ${k===it.type?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select></div>
+  </div>
+  ${it.status==='done'?actualCard(it):''}
+  ${it.type==='meal'?mealSection(it):subsSection(it)}
+  <div class="card stack">
+    <div class="row"><input data-f="place" value="${esc(it.place)}" placeholder="📍 Place / address for maps">${it.place||it.title?`<a class="btn sm maplink" href="${mapUrl(it.place||it.title)}" target="_blank" rel="noopener">🗺️ Map</a>`:''}</div>
+    <input data-f="area" value="${esc(it.area)}" placeholder="Area tag (Osaka, Kyoto, Tomamu…)" list="areas">
+    <datalist id="areas">${[...new Set(S.items.map(i=>i.area).filter(Boolean))].map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
+    <textarea data-f="notes" placeholder="Notes, tickets, booking refs, tips…">${esc(it.notes)}</textarea>
+  </div>
+  <div class="card btns">
+    ${it.day?`<button class="btn" data-a="to-wish">⭐ Move back to wishlist</button>`:''}
+    <button class="btn" data-a="dup">⧉ Duplicate (e.g. for another group)</button>
+  </div>`;
+}
+function actualCard(it){
+  const a=it.actual||{};const r=a.rating||0;
+  return `<div class="card hl"><div class="sh"><h3>✅ What actually happened</h3>${it.unplanned?'<span class="badge">unplanned</span>':''}</div>
+    <div class="grid2"><input type="time" data-f="actual.start" value="${esc(a.start||it.start)}"><input type="time" data-f="actual.end" value="${esc(a.end||it.end)}"></div>
+    <div class="stars">${[1,2,3,4,5].map(n=>`<button data-a="rate" data-v="${n}" class="${n<=r?'on':''}">★</button>`).join('')}</div>
+    <textarea data-f="actual.note" placeholder="How was it? Highlights, what we'd do differently…">${esc(a.note)}</textarea></div>`;
+}
+function subsSection(it){
+  const subs=it.subs||[];const d=subs.filter(s=>s.done).length;
+  return `<div class="card"><div class="sh"><h3>🗂️ Plan inside this</h3><span>${subs.length?`${d}/${subs.length} done`:'rides, stops, tickets…'}</span></div>
+    ${subs.length?`<div class="bar"><i style="width:${d/subs.length*100}%"></i></div>`:''}
+    <div>${subs.map(s=>`<div class="sub ${s.done?'done':''}"><button class="tk" data-a="sub-done" data-sid="${s.id}">${s.done?'✓':''}</button>
+      <div class="sb"><input data-sf="title" data-sid="${s.id}" value="${esc(s.title)}"><div class="row sm"><input type="time" style="flex:0 0 100px" data-sf="time" data-sid="${s.id}" value="${esc(s.time)}"><input data-sf="note" data-sid="${s.id}" value="${esc(s.note)}" placeholder="note · who · wait time"></div></div>
+      <div class="sbtn"><button data-a="sub-up" data-sid="${s.id}">↑</button><button data-a="sub-del" data-sid="${s.id}">✕</button></div></div>`).join('')}</div>
+    <form class="row" data-form="sub-add"><input name="t" placeholder="Add a ride, stop, reminder…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form></div>`;
+}
+function mealSection(it){
+  const m=it.meal;const parts=it.who.length?it.who.map(person).filter(Boolean):S.people;
+  const sel=m.foods.map(getFood).filter(Boolean);const others=S.foods.filter(f=>!m.foods.includes(f.id));
+  return `<div class="card" style="border-color:var(--meal)">
+    <div class="seg">${KINDS.map(k=>`<button data-a="mkind" data-v="${k}" class="${m.kind===k?'on':''}">${KIND_EMO[k]} ${k}</button>`).join('')}</div>
+    <div class="sh" style="margin-top:12px"><h3>🏮 Restaurant shortlist</h3><span>★ = our pick</span></div>
+    ${m.places.map(p=>`<div class="place ${p.chosen?'chosen':''}"><div class="row"><button class="star" data-a="pchoose" data-pid="${p.id}">${p.chosen?'⭐':'☆'}</button><input data-pf="name" data-pid="${p.id}" value="${esc(p.name)}" placeholder="Name">
+        <a class="btn sm maplink" href="${mapUrl(p.name+' '+(p.area||it.area||''))}" target="_blank" rel="noopener">🗺️</a><button class="btn sm" style="flex:0 0 auto" data-a="pdel" data-pid="${p.id}">✕</button></div>
+      <div class="row sm"><input data-pf="area" data-pid="${p.id}" value="${esc(p.area)}" placeholder="Area / station"><select data-pf="price" data-pid="${p.id}" style="flex:0 0 84px">${['','¥','¥¥','¥¥¥','¥¥¥¥'].map(v=>`<option ${v===p.price?'selected':''} value="${v}">${v||'Price'}</option>`).join('')}</select></div>
+      <div class="row sm"><input data-pf="note" data-pid="${p.id}" value="${esc(p.note)}" placeholder="Booking? queue? kid-friendly? signature dish…"></div></div>`).join('')||'<div class="muted" style="margin-bottom:6px">No places yet — add a few ideas and star the winner.</div>'}
+    <form class="row" data-form="place-add"><input name="t" placeholder="Add a restaurant idea…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form>
+    <div class="sh" style="margin-top:14px"><h3>🍣 Dishes to try here</h3><span>${sel.length} picked</span></div>
+    <div class="chips wrap">${sel.map(f=>`<button class="chip food on" data-a="mfood" data-id="${f.id}">${esc(f.emoji)} ${esc(f.name)} ✕</button>`).join('')||'<span class="muted">Pick from the food bucket list ↓</span>'}</div>
+    <details><summary>+ add dishes (${others.length} on the bucket list)</summary><div class="chips wrap">${others.map(f=>`<button class="chip food" data-a="mfood" data-id="${f.id}">${esc(f.emoji)} ${esc(f.name)}</button>`).join('')}</div>
+      <form class="row" data-form="food-new"><input name="t" placeholder="New dish not on the list…" autocomplete="off"><button class="btn" style="flex:0 0 auto">Add</button></form></details>
+    <div class="sh" style="margin-top:14px"><h3>🙋 Who's having what</h3></div>
+    ${parts.map(p=>`<div class="order"><span>${esc(p.emoji)} ${esc(p.name)}</span><input data-of="${p.id}" value="${esc(m.orders[p.id]||'')}" placeholder="their choice…"></div>`).join('')}
+    ${sel.length?`<button class="btn full" style="margin-top:12px" data-a="meal-tried">✅ Mark these dishes as tried by everyone at this meal</button>`:''}
+  </div>`;
+}
+
+/* ====================== BUCKET LIST ====================== */
+function viewBucket(){
+  const acts=S.items.filter(i=>i.type!=='travel'&&visible(i));
+  const done=acts.filter(i=>i.status==='done'),wish=acts.filter(i=>!i.day&&i.status==='plan'),todo=acts.filter(i=>i.day&&i.status==='plan'),skip=acts.filter(i=>i.status==='skip');
+  const total=acts.filter(i=>i.status==='done'||(i.status==='plan'&&!i.tentative)).length,pct=total?done.length/total:0;const C=2*Math.PI*34;
+  const row=i=>`<div class="li ${i.status==='done'?'done':''}"><button class="tk ${i.status==='done'?'on':''}" data-a="quickdone" data-id="${i.id}">${i.status==='done'?'✓':''}</button>
+    <div class="lb" data-a="open" data-id="${i.id}"><b>${esc(i.emoji)} ${esc(i.title)}</b><small>${i.tentative?'<span class="badge tent">option</span>':''}${i.type==='meal'?'<span class="badge meal">meal</span>':''}${i.day?esc(dlabel(i.day))+(i.start?' '+i.start:''):esc(i.area||'')} ${i.who.length?whoMini(i.who):''}${i.subs?.length?` · ${i.subs.filter(s=>s.done).length}/${i.subs.length} inside`:''}${i.actual?.rating?' · '+'★'.repeat(i.actual.rating):''}</small></div></div>`;
+  const byArea={};for(const i of wish)(byArea[i.area||'Anywhere']??=[]).push(i);
+  const todoSorted=todo.sort((a,b)=>(a.day+a.start).localeCompare(b.day+b.start));
+  return `<div class="top"><div class="tt"><h1>✅ Bucket list</h1></div><div class="chips">${personChips(pf?[pf]:[],'pf','👪 All')}</div></div>
+  <div class="card ring"><svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="34" fill="none" stroke="var(--line)" stroke-width="9"/>
+    <circle cx="42" cy="42" r="34" fill="none" stroke="var(--done)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C*pct} ${C}" transform="rotate(-90 42 42)"/></svg>
+    <div><div class="big">${done.length}<span class="muted" style="font-size:16px"> / ${total}</span></div><div>ticked off${pf?' for '+esc(person(pf)?.name):''} 🎉</div><div class="muted">${wish.length} on the wishlist · ${todo.length} planned</div></div></div>
+  <div class="card"><div class="sh"><h3>⭐ Wishlist – not scheduled yet</h3><span>${wish.length}</span></div>
+    <form class="row" data-form="wish-add"><input name="t" placeholder="Add something we'd love to do…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form>
+    ${Object.entries(byArea).map(([a,l])=>`<div class="lbl">${esc(a)}</div><div class="list">${l.map(row).join('')}</div>`).join('')||'<div class="empty">Nothing waiting — everything is scheduled!</div>'}
+    <div class="muted" style="margin-top:6px">Tip: open an item and pick a day to schedule it, or tap an empty slot on a day and choose it from the wishlist.</div></div>
+  <div class="card"><div class="sh"><h3>📋 Still to do</h3><span>${todo.length}</span></div><div class="list">${todoSorted.map(row).join('')||'<div class="empty">All done!</div>'}</div></div>
+  <div class="card"><div class="sh"><h3>🎉 Done</h3><span>${done.length}</span></div><div class="list">${done.sort((a,b)=>((b.day||'')+(b.start||'')).localeCompare((a.day||'')+(a.start||''))).map(row).join('')||'<div class="empty">Nothing ticked off yet — go have fun!</div>'}</div></div>
+  ${skip.length?`<div class="card"><details><summary>⏭️ Skipped (${skip.length})</summary><div class="list">${skip.map(row).join('')}</div></details></div>`:''}`;
+}
+
+/* ====================== FOOD ====================== */
+function mealsForFood(fid){return S.items.filter(i=>i.type==='meal'&&i.status!=='skip'&&i.meal.foods.includes(fid)).sort((a,b)=>(a.day+a.start).localeCompare(b.day+b.start))}
+function viewFood(){
+  const tabs=`<div class="seg" style="margin-top:6px"><button data-a="ftab" data-v="plan" class="${foodTab==='plan'?'on':''}">🗓️ Meal plan</button><button data-a="ftab" data-v="list" class="${foodTab==='list'?'on':''}">🍣 Food bucket list</button></div>`;
+  let body='';
+  if(foodTab==='plan'){
+    const days=tripDays();let slots=0,filled=0;
+    const rows=days.map(d=>{const meals=S.items.filter(i=>i.day===d&&i.type==='meal'&&i.status!=='skip'&&visible(i));
+      const ks=['Breakfast','Lunch','Dinner'];if(meals.some(m=>m.meal.kind==='Snack'))ks.push('Snack');
+      return `<div class="mday"><div class="mh">${esc(dlabel(d))} <small>${esc(S.days[d]?.title||'')}</small></div>${ks.map(k=>{const ms=meals.filter(m=>m.meal.kind===k);if(k!=='Snack'){slots++;if(ms.length)filled++}
+        return `<div class="mslot"><span class="mk">${KIND_EMO[k]} ${k}</span><div class="mv">${ms.map(m=>{const pl=m.meal.places.find(p=>p.chosen);const fs=m.meal.foods.map(getFood).filter(Boolean);
+          return `<a href="#/item/${m.id}">${m.status==='done'?'✅ ':''}<b>${esc(m.title)}</b>${pl?' · ⭐ '+esc(pl.name):m.meal.places.length?` · <span class="muted">${m.meal.places.length} ideas</span>`:''} ${m.who.length?whoMini(m.who):''}${fs.length?`<br><span class="muted">${fs.map(f=>esc(f.emoji)).join(' ')}</span>`:''}</a>`}).join('')}
+          <button class="add" data-a="qa-meal" data-day="${d}" data-kind="${k}">＋ ${ms.length?'another (different group)':'add '+k.toLowerCase()}</button></div></div>`}).join('')}
+          ${!ks.includes('Snack')?`<div class="mslot"><span class="mk"></span><div class="mv"><button class="add" data-a="qa-meal" data-day="${d}" data-kind="Snack">＋ snack / dessert</button></div></div>`:''}</div>`}).join('');
+    body=`<div class="card"><div class="sh"><h3>Main meals planned</h3><span>${filled} / ${slots}</span></div><div class="bar"><i style="width:${slots?filled/slots*100:0}%"></i></div><div class="muted">Empty slots are open for ideas. Tap a meal to shortlist restaurants and dishes.</div></div>
+      <div class="card" style="padding:0">${rows}</div>`;
+  }else{
+    const me=meId();
+    const st=S.foods.map(f=>({f,meals:mealsForFood(f.id),tried:Object.keys(f.tried||{}).filter(person)}));
+    const nTried=st.filter(x=>x.tried.length).length,nPlanned=st.filter(x=>x.meals.length).length;
+    const flt={all:()=>true,todo:x=>!x.meals.length&&!x.tried.length,planned:x=>x.meals.length&&!x.tried.length,tried:x=>x.tried.length}[foodFilter]||(()=>true);
+    const list=st.filter(flt);
+    const regions={};for(const x of list)(regions[x.f.region||'Anywhere']??=[]).push(x);
+    body=`<div class="card"><div class="row" style="align-items:stretch;text-align:center">
+        <div><div style="font-size:24px;font-weight:700">${nTried}</div><div class="muted">tried</div></div>
+        <div><div style="font-size:24px;font-weight:700">${nPlanned}</div><div class="muted">in a meal plan</div></div>
+        <div><div style="font-size:24px;font-weight:700;color:var(--red)">${st.filter(x=>!x.meals.length&&!x.tried.length).length}</div><div class="muted">not slotted yet</div></div></div>
+      <div class="bar" style="margin-top:10px"><i style="width:${S.foods.length?nTried/S.foods.length*100:0}%"></i></div>
+      <div class="chips">${[['all','All'],['todo','🔴 Not slotted'],['planned','🗓️ Planned'],['tried','✅ Tried']].map(([k,l])=>`<button class="chip ${foodFilter===k?'on':''}" data-a="ffilter" data-v="${k}">${l}</button>`).join('')}</div>
+      <div class="muted">✓ ticks it for <b>${esc(person(me)?.emoji||'')} ${esc(person(me)?.name||'you')}</b> (change “This phone is” in Family &amp; share). Tap a dish for everyone.</div></div>
+      <div class="card">${Object.entries(regions).map(([r,l])=>`<div class="lbl">${esc(r)}</div>${l.map(x=>{const f=x.f,mine=!!f.tried?.[me];
+        return `<div class="frow" data-a="food-open" data-id="${f.id}"><span class="fe">${esc(f.emoji)}</span><div class="fb"><b>${esc(f.name)}</b> <small>${esc(f.zh||'')}</small>
+          <div class="fm">${x.meals.length?'🗓️ '+x.meals.map(m=>esc(m.day?dlabel(m.day).replace(/^\w+ /,''):'wishlist')+' '+esc(m.meal.kind)).join(', '):(x.tried.length?'':'<span style="color:var(--red)">not slotted into a meal yet</span>')}</div></div>
+          <div class="fr">${x.tried.length?`<span class="av">${x.tried.map(id=>esc(person(id).emoji)).join('')}</span>`:''}<button class="tk ${mine?'on':''}" data-a="food-tried" data-id="${f.id}">${mine?'✓':''}</button></div></div>`}).join('')}`).join('')||'<div class="empty">Nothing here.</div>'}
+        <form class="row" data-form="food-new"><input name="t" placeholder="Add a food we must try…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form></div>`;
+  }
+  return `<div class="top"><div class="tt"><h1>🍜 Food</h1></div>${tabs}<div class="chips">${personChips(pf?[pf]:[],'pf','👪 All')}</div></div>${body}`;
+}
+function foodSheet(f){
+  curFoodId=f.id;const meals=mealsForFood(f.id);
+  openSheet(`<div class="row"><input class="emo" data-ff="emoji" value="${esc(f.emoji)}"><input class="ttl" data-ff="name" value="${esc(f.name)}"></div>
+    <div class="grid2"><input data-ff="zh" value="${esc(f.zh||'')}" placeholder="中文 / 日本語"><input data-ff="region" value="${esc(f.region||'')}" placeholder="Region"></div>
+    <div class="lbl">Who has tried it</div><div class="chips wrap">${S.people.map(p=>`<button class="chip ${f.tried?.[p.id]?'on':''}" data-a="food-tp" data-v="${p.id}">${esc(p.emoji)} ${esc(p.name)}</button>`).join('')}</div>
+    <div class="lbl">Planned at</div>${meals.map(m=>`<div><a href="#/item/${m.id}" data-a="close">${esc(m.day?dlabel(m.day):'Wishlist')} · ${esc(m.meal.kind)} · ${esc(m.title)}</a></div>`).join('')||'<div class="muted">Not in any meal yet. Open a meal and add it under “Dishes to try here”.</div>'}
+    <div class="btns" style="margin-top:14px"><button class="btn" data-a="food-del">🗑️ Remove dish</button><button class="btn pri" data-a="close" style="flex:1">Done</button></div>`);
+}
+
+/* ====================== FAMILY & SHARE ====================== */
+function viewMore(){
+  const me=meId();const ago=S.lastShared?new Date(S.lastShared).toLocaleString():'never';
+  return `<div class="top"><div class="tt"><h1>👪 Family &amp; share</h1></div></div>
+  <div class="card stack"><h3>🧳 Trip</h3><input data-tf="name" value="${esc(S.trip.name)}">
+    <div class="grid2"><label class="muted">From<input type="date" data-tf="start" value="${S.trip.start}"></label><label class="muted">To<input type="date" data-tf="end" value="${S.trip.end}"></label></div></div>
+  <div class="card"><h3>📱 This phone is…</h3><div class="muted" style="margin:4px 0 8px">Used for “I tried it” ticks. Each phone keeps its own setting.</div>
+    <div class="chips wrap">${S.people.map(p=>`<button class="chip ${p.id===me?'on':''}" data-a="setme" data-v="${p.id}">${esc(p.emoji)} ${esc(p.name)}</button>`).join('')}</div></div>
+  <div class="card"><h3>👨‍👩‍👧 People</h3><div class="muted" style="margin:4px 0 8px">Assign people to activities and meals so groups can split up (e.g. skiing vs. onsen). Leave “Everyone” for whole-group plans.</div>
+    ${S.people.map(p=>`<div class="pp"><input class="emo" data-pp="emoji" data-pid="${p.id}" value="${esc(p.emoji)}"><input data-pp="name" data-pid="${p.id}" value="${esc(p.name)}"><input type="color" data-pp="color" data-pid="${p.id}" value="${esc(p.color||'#888888')}"><button class="btn sm" data-a="pdel-person" data-pid="${p.id}">✕</button></div>`).join('')}
+    <form class="row" data-form="person-add"><input name="t" placeholder="Add a person (name)…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form></div>
+  <div class="card stack"><h3>💾 Save &amp; share</h3>
+    <div class="muted">Everything is saved on this phone automatically and works offline. To share with family, send them the plan file — when they import it, the newest version of each item wins, so everyone's edits combine.</div>
+    <button class="btn pri full" data-a="share-file">📤 Share plan file (WhatsApp, email…)</button>
+    <div class="btns"><button class="btn" style="flex:1" data-a="download">⬇️ Download backup</button><button class="btn" style="flex:1" data-a="import">📥 Import a plan file</button></div>
+    <button class="btn full" data-a="share-link">🔗 Copy plan as a link</button>
+    <input type="file" id="importfile" accept=".json,application/json,text/plain" hidden>
+    <div class="muted">Last shared/exported: ${esc(ago)}</div></div>
+  <div class="card"><h3>📷 QR code</h3><div class="muted" style="margin:4px 0">${location.protocol.startsWith('http')?'Scan to open this planner on another phone, then “Add to Home screen”. Send them the plan file to load your latest inputs.':'QR works once the planner is hosted online (see README). Right now it is opened as a local file.'}</div>
+    <div id="qrbox"></div></div>
+  <div class="card stack"><h3>📲 Install on your phone</h3><div class="muted">Android Chrome: ⋮ menu → <b>Add to Home screen</b> / <b>Install app</b>. iPhone Safari: Share → <b>Add to Home Screen</b>. After the first open it works with no internet.</div></div>
+  <div class="card btns"><button class="btn" data-a="reset">↺ Clear this phone and start blank</button></div>
+  <div class="muted" style="text-align:center;margin:10px 0 20px">${S.items.length} items · ${S.foods.length} foods · stored on this device</div>`;
+}
+function loadScript(src){return new Promise((res,rej)=>{if(window.qrcode)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+async function drawQR(){
+  const box=$('#qrbox');if(!box||!location.protocol.startsWith('http'))return;
+  try{await loadScript(QR_SRC);const url=location.origin+location.pathname;const q=qrcode(0,'M');q.addData(url);q.make();
+    box.innerHTML=`<div class="qr">${q.createSvgTag({cellSize:4,margin:2,scalable:true})}</div><div class="muted" style="text-align:center;word-break:break-all">${esc(url)}</div>`}
+  catch(e){box.innerHTML='<div class="muted">QR needs internet the first time it loads.</div>'}
+}
+
+/* ====================== sync / export ====================== */
+const exportJSON=()=>JSON.stringify({app:'japan-trip-planner',v:1,exportedAt:now(),data:S});
+const fname=()=>'japan-trip-plan-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
+function download(text,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+async function shareFile(){
+  const text=exportJSON();const file=new File([text],fname(),{type:'application/json'});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Japan trip plan',text:'Latest Japan trip plan – open the planner → Family & share → Import'});markShared();return}}
+  catch(e){if(e.name==='AbortError')return}
+  download(text,fname());markShared();toast('Saved to Downloads — attach it in WhatsApp/email');
+}
+function markShared(){S.lastShared=now();save();render()}
+async function b64compress(str){const cs=new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'));const u=new Uint8Array(await new Response(cs).arrayBuffer());let b='';for(let i=0;i<u.length;i+=32768)b+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function b64decompress(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text()}
+async function shareLink(){
+  try{const z=await b64compress(JSON.stringify(S));const url=location.origin+location.pathname+'#import='+z;
+    if(navigator.share){try{await navigator.share({title:'Japan trip plan',url});markShared();return}catch(e){if(e.name==='AbortError')return}}
+    await navigator.clipboard.writeText(url);markShared();toast(`Link copied (${Math.round(url.length/1024)} KB) — paste it to family`)}
+  catch(e){toast('Could not make link: '+e.message)}
+}
+function parseIncoming(text){const o=JSON.parse(text);const d=o.data||o;if(!d.items||!d.people)throw new Error('Not a trip plan file');return d}
+function askImport(d){
+  if(!S.items.length){S=d;S.deleted=S.deleted||{};save();curDay=null;location.hash='#/day';render();toast(`📥 Plan loaded: ${d.items.length} items`);return}
+  openSheet(`<h2>📥 Import plan</h2><div class="muted">${d.items.length} items · ${d.foods?.length||0} foods · ${d.people.length} people</div>
+    <p><b>Merge</b> keeps the newest version of every item from both phones (recommended). <b>Replace</b> throws away what's on this phone.</p>
+    <div class="btns"><button class="btn" data-a="close">Cancel</button><button class="btn" data-a="imp-replace">Replace all</button><button class="btn pri" style="flex:1" data-a="imp-merge">Merge</button></div>`);
+  pendingImport=d;
+}
+let pendingImport=null;
+function mergeData(inc){
+  const del=Object.assign({},S.deleted);for(const[k,v]of Object.entries(inc.deleted||{}))del[k]=Math.max(del[k]||0,v);
+  const mergeArr=(a,b)=>{const m=new Map(a.map(x=>[x.id,x]));for(const x of b||[]){const c=m.get(x.id);if(!c||(x.u||0)>(c.u||0))m.set(x.id,x)}return[...m.values()].filter(x=>!(del[x.id]>=(x.u||0)))};
+  const n0=S.items.length;
+  S.items=mergeArr(S.items,inc.items);S.foods=mergeArr(S.foods,inc.foods);S.people=mergeArr(S.people,inc.people);
+  for(const[d,v]of Object.entries(inc.days||{})){const c=S.days[d];if(!c||(v.u||0)>(c.u||0))S.days[d]=v}
+  if(inc.trip&&(inc.trip.u||0)>(S.trip.u||0))S.trip=inc.trip;
+  S.deleted=del;save();return S.items.length-n0;
+}
+
+/* ====================== sheet / toast ====================== */
+function openSheet(html){$('#sheetwrap').innerHTML=`<div class="sheet-bg" data-a="bg"><div class="sheet"><div class="grab"></div>${html}</div></div>`}
+function closeSheet(){$('#sheetwrap').innerHTML='';qa=null;curFoodId=null;pendingImport=null}
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2400)}
+
+/* quick add */
+function openQA(o={}){
+  qa=Object.assign({title:'',type:'act',day:curDay||defaultDay(),start:'',end:'',who:pf?[pf]:[]},o);
+  if(qa.start&&!qa.end)qa.end=fromMin(toMin(qa.start)+(qa.type==='meal'?60:90));
+  renderQA(true);
+}
+function renderQA(focus){
+  const days=tripDays();const actual=mode==='actual'&&qa.day;
+  const wishes=S.items.filter(i=>!i.day&&i.status==='plan'&&i.type!=='travel');
+  openSheet(`<h2>${actual?'📝 Log what we did':'＋ Add to plan'}</h2>
+    <input id="qa-title" placeholder="${qa.type==='meal'?'e.g. Ramen dinner, Kuromon lunch…':'What? e.g. Ski lesson, Pokémon Center…'}" value="${esc(qa.title)}" autocomplete="off">
+    <div class="seg" style="margin-top:8px">${Object.entries(TYPE).map(([k,v])=>`<button data-a="qa-type" data-v="${k}" class="${qa.type===k?'on':''}">${v.emoji} ${v.label}</button>`).join('')}</div>
+    <div class="grid3"><select id="qa-day"><option value="">⭐ Wishlist (no date)</option>${days.map(d=>`<option value="${d}" ${d===qa.day?'selected':''}>${dlabel(d)}</option>`).join('')}</select>
+      <input type="time" id="qa-start" value="${esc(qa.start)}"><input type="time" id="qa-end" value="${esc(qa.end)}"></div>
+    <div class="lbl">Who</div><div class="chips wrap">${personChips(qa.who,'qa-who')}</div>
+    <div class="btns" style="margin-top:14px"><button class="btn" style="flex:1" data-a="qa-save" data-v="open">Save + details</button><button class="btn pri" style="flex:1" data-a="qa-save">Save</button></div>
+    ${qa.day&&wishes.length&&!actual?`<div class="wishpick"><div class="lbl">…or slot in from the wishlist</div><div class="chips wrap">${wishes.map(i=>`<button class="chip" data-a="qa-pick" data-id="${i.id}">${esc(i.emoji)} ${esc(i.title)}</button>`).join('')}</div></div>`:''}`);
+  if(focus)setTimeout(()=>$('#qa-title')?.focus(),80);
+}
+function qaSync(){if(!qa||!$('#qa-title'))return;qa.title=$('#qa-title').value;qa.day=$('#qa-day').value;qa.start=$('#qa-start').value;qa.end=$('#qa-end').value}
+
+/* ====================== actions ====================== */
+function setPath(o,p,v){const k=p.split('.');let x=o;for(let i=0;i<k.length-1;i++)x=x[k[i]]??=( {} );x[k[k.length-1]]=v}
+function toggleDone(it){
+  if(it.status==='done'){it.status='plan'}else{it.status='done';it.actual=it.actual||{};if(!it.actual.start)it.actual.start=it.start;if(!it.actual.end)it.actual.end=it.end;toast('🎉 Ticked off: '+it.title)}
+  touch(it);
+}
+const ACT={
+  open:el=>location.hash='#/item/'+el.dataset.id,
+  quickdone:el=>{const it=getItem(el.dataset.id);if(it){toggleDone(it);render()}},
+  mode:el=>{mode=el.dataset.v;ls.set('jtp-mode',mode);render()},
+  pf:el=>{pf=el.dataset.v;ls.set('jtp-pf',pf);render()},
+  qa:()=>openQA(),
+  'tl-tap':(el,e)=>{const r=el.getBoundingClientRect();const m=+el.dataset.sh*60+(e.clientY-r.top)/HP*60;openQA({start:fromMin(Math.floor(m/30)*30)})},
+  'qa-type':el=>{qaSync();qa.type=el.dataset.v;renderQA()},
+  'qa-who':el=>{qaSync();const v=el.dataset.v;qa.who=!v?[]:qa.who.includes(v)?qa.who.filter(x=>x!==v):[...qa.who,v];renderQA()},
+  'qa-save':el=>{qaSync();if(!qa.title.trim()){toast('Give it a name first');$('#qa-title').focus();return}
+    const it=newItem({type:qa.type,title:qa.title.trim(),day:qa.day,start:qa.start,end:qa.end,who:qa.who});
+    if(it.type==='meal'&&qa.kind)it.meal.kind=qa.kind;
+    if(mode==='actual'&&qa.day){it.status='done';it.unplanned=true;it.actual={start:qa.start,end:qa.end}}
+    S.items.push(it);save();const open=el.dataset.v==='open';closeSheet();
+    if(open)location.hash='#/item/'+it.id;else{render();toast('Added ✓')}},
+  'qa-pick':el=>{qaSync();const it=getItem(el.dataset.id);it.day=qa.day;it.start=qa.start;it.end=qa.end;if(qa.who.length&&!it.who.length)it.who=qa.who;touch(it);closeSheet();render();toast('Scheduled: '+it.title)},
+  'qa-meal':el=>{curDay=el.dataset.day;openQA({type:'meal',day:el.dataset.day,start:KIND_TIME[el.dataset.kind],kind:el.dataset.kind,title:''})},
+  bg:(el,e)=>{if(e.target===el)closeSheet()},
+  close:()=>closeSheet(),
+  back:()=>{const it=getItem(curItemId);if(history.length>1&&lastRoute)history.back();else location.hash='#/day/'+(it?.day||'')},
+  who:el=>{const it=getItem(curItemId),v=el.dataset.v;it.who=!v?[]:it.who.includes(v)?it.who.filter(x=>x!==v):[...it.who,v];touch(it);render()},
+  status:el=>{const it=getItem(curItemId);if(el.dataset.v==='done'&&it.status!=='done')toggleDone(it);else{it.status=el.dataset.v;touch(it)}render()},
+  rate:el=>{const it=getItem(curItemId);it.actual=it.actual||{};it.actual.rating=+el.dataset.v===it.actual.rating?0:+el.dataset.v;touch(it);render()},
+  dup:()=>{const it=getItem(curItemId);const c=JSON.parse(JSON.stringify(it));c.id=uid();c.title=it.title+' (copy)';c.status='plan';c.actual={};c.u=now();(c.subs||[]).forEach(s=>{s.id=uid();s.done=false});
+    if(c.meal)c.meal.places.forEach(p=>p.id=uid());S.items.push(c);save();location.hash='#/item/'+c.id;toast('Copied — set who’s going on this one')},
+  del:()=>{const it=getItem(curItemId);if(confirm(`Delete “${it.title}”?`)){const d=it.day;remove(it.id);location.hash='#/day/'+(d||'');toast('Deleted')}},
+  'to-wish':()=>{const it=getItem(curItemId);const d=it.day;it.day='';it.start='';it.end='';touch(it);toast('Moved to wishlist');location.hash='#/day/'+d},
+  'sub-done':el=>{const it=getItem(curItemId);const s=it.subs.find(x=>x.id===el.dataset.sid);s.done=!s.done;touch(it);render()},
+  'sub-del':el=>{const it=getItem(curItemId);it.subs=it.subs.filter(x=>x.id!==el.dataset.sid);touch(it);render()},
+  'sub-up':el=>{const it=getItem(curItemId);const i=it.subs.findIndex(x=>x.id===el.dataset.sid);if(i>0){[it.subs[i-1],it.subs[i]]=[it.subs[i],it.subs[i-1]];touch(it);render()}},
+  mkind:el=>{const it=getItem(curItemId);it.meal.kind=el.dataset.v;touch(it);render()},
+  pchoose:el=>{const it=getItem(curItemId);for(const p of it.meal.places)p.chosen=p.id===el.dataset.pid?!p.chosen:false;touch(it);render()},
+  pdel:el=>{const it=getItem(curItemId);it.meal.places=it.meal.places.filter(p=>p.id!==el.dataset.pid);touch(it);render()},
+  mfood:el=>{const it=getItem(curItemId),f=el.dataset.id,m=it.meal;const open=!!el.closest('details');m.foods=m.foods.includes(f)?m.foods.filter(x=>x!==f):[...m.foods,f];touch(it);render();if(open)$('details')?.setAttribute('open','')},
+  'meal-tried':()=>{const it=getItem(curItemId);const ps=it.who.length?it.who:S.people.map(p=>p.id);for(const fid of it.meal.foods){const f=getFood(fid);if(!f)continue;f.tried=f.tried||{};for(const p of ps)f.tried[p]=f.tried[p]||now();f.u=now()}save();toast('🍣 Marked as tried!')},
+  ftab:el=>{foodTab=el.dataset.v;ls.set('jtp-foodtab',foodTab);render()},
+  ffilter:el=>{foodFilter=el.dataset.v;render()},
+  'food-tried':el=>{const f=getFood(el.dataset.id),me=meId();f.tried=f.tried||{};if(f.tried[me])delete f.tried[me];else{f.tried[me]=now();toast(`${f.emoji} Tried ${f.name}!`)}touch(f);render()},
+  'food-open':el=>foodSheet(getFood(el.dataset.id)),
+  'food-tp':el=>{const f=getFood(curFoodId),p=el.dataset.v;f.tried=f.tried||{};if(f.tried[p])delete f.tried[p];else f.tried[p]=now();touch(f);foodSheet(f);render()},
+  'food-del':()=>{const f=getFood(curFoodId);if(!confirm(`Remove ${f.name}?`))return;S.deleted[f.id]=now();S.foods=S.foods.filter(x=>x.id!==f.id);for(const i of S.items)if(i.meal)i.meal.foods=i.meal.foods.filter(x=>x!==f.id);save();closeSheet();render()},
+  'edit-day':()=>{const d=S.days[curDay]||{};openSheet(`<h2>✏️ ${esc(dlabel(curDay))}</h2><div class="stack"><input id="dy-title" value="${esc(d.title||'')}" placeholder="Day title, e.g. 🎢 Universal Studios"><textarea id="dy-note" placeholder="Hotel, transport, reminders…">${esc(d.note||'')}</textarea><button class="btn pri full" data-a="save-day">Save</button></div>`)},
+  'save-day':()=>{S.days[curDay]={title:$('#dy-title').value,note:$('#dy-note').value,u:now()};save();closeSheet();render()},
+  setme:el=>{ls.set(ME_KEY,el.dataset.v);render()},
+  'pdel-person':el=>{const p=person(el.dataset.pid);if(S.people.length<2)return toast('Keep at least one person');if(!confirm(`Remove ${p.name}? Their activities stay, just unassigned.`))return;
+    S.deleted[p.id]=now();S.people=S.people.filter(x=>x.id!==p.id);for(const i of S.items)if(i.who.includes(p.id)){i.who=i.who.filter(x=>x!==p.id);i.u=now()}if(pf===p.id)pf='';save();render()},
+  'share-file':()=>shareFile(),
+  download:()=>{download(exportJSON(),fname());markShared();toast('Backup downloaded')},
+  import:()=>$('#importfile').click(),
+  'share-link':()=>shareLink(),
+  'imp-merge':()=>{const n=mergeData(pendingImport);closeSheet();render();toast(n>0?`Merged ✓ (+${n} items)`:'Merged ✓ newest edits kept')},
+  'imp-replace':()=>{if(!confirm('Replace everything on this phone?'))return;S=pendingImport;S.deleted=S.deleted||{};save();closeSheet();render();toast('Replaced ✓')},
+  reset:()=>{if(confirm('Clear everything on this phone? Download a backup first! You can then load a plan file again.')){S=seed();save();render();toast('Reset ✓')}},
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;const fn=ACT[el.dataset.a];if(!fn)return;if(el.tagName!=='A'||el.dataset.a!=='close')e.preventDefault();if(el.dataset.a==='close'&&el.tagName==='A'){closeSheet();return}fn(el,e)});
+document.addEventListener('change',e=>{
+  const el=e.target,ds=el.dataset;
+  if(el.id==='qa-start'&&qa){qaSync();if(qa.start&&(!qa.end||toMin(qa.end)<=toMin(qa.start))){qa.end=fromMin(toMin(qa.start)+60);$('#qa-end').value=qa.end}return}
+  if(el.id==='importfile'){const f=el.files[0];if(!f)return;f.text().then(t=>askImport(parseIncoming(t))).catch(err=>toast('Import failed: '+err.message));el.value='';return}
+  if(ds.f){const it=getItem(curItemId);if(!it)return;const v=el.type==='checkbox'?el.checked:el.value;setPath(it,ds.f,v);
+    if(ds.f==='start'&&v&&(!it.end||toMin(it.end)<=toMin(v)))it.end=fromMin(toMin(v)+60);
+    if(ds.f==='type'&&v==='meal'&&!it.meal)it.meal=newMeal(it.start);
+    if(ds.f==='start'&&it.type==='meal'&&v)it.meal.kind=kindFor(v);
+    touch(it);if(['start','day','type','tentative'].includes(ds.f))render();return}
+  if(ds.sf){const it=getItem(curItemId);const s=it.subs.find(x=>x.id===ds.sid);s[ds.sf]=el.value;touch(it);return}
+  if(ds.pf){const it=getItem(curItemId);const p=it.meal.places.find(x=>x.id===ds.pid);p[ds.pf]=el.value;touch(it);return}
+  if(ds.of){const it=getItem(curItemId);it.meal.orders[ds.of]=el.value;touch(it);return}
+  if(ds.ff){const f=getFood(curFoodId);f[ds.ff]=el.value;touch(f);render();return}
+  if(ds.pp){const p=person(ds.pid);p[ds.pp]=el.value;touch(p);return}
+  if(ds.tf){S.trip[ds.tf]=el.value;touch(S.trip);return}
+});
+document.addEventListener('submit',e=>{
+  const form=e.target,kind=form.dataset.form;if(!kind)return;e.preventDefault();const v=form.t.value.trim();if(!v)return;
+  if(kind==='sub-add'){const it=getItem(curItemId);it.subs=it.subs||[];it.subs.push(newSub(v));touch(it)}
+  if(kind==='place-add'){const it=getItem(curItemId);it.meal.places.push({id:uid(),name:v,area:'',price:'',note:'',chosen:it.meal.places.length===0});touch(it)}
+  if(kind==='food-new'){const f={id:uid(),name:v,zh:'',emoji:'🍽️',region:'Anywhere',tried:{},u:now()};S.foods.push(f);const it=location.hash.startsWith('#/item/')&&getItem(curItemId);if(it&&it.meal){it.meal.foods.push(f.id);touch(it)}else save()}
+  if(kind==='wish-add'){S.items.push(newItem({title:v,who:pf?[pf]:[]}));save();toast('⭐ Added to wishlist')}
+  if(kind==='person-add'){const cols=['#2b6cb0','#d53f8c','#805ad5','#2f855a','#c05621','#b7791f','#319795','#e53e3e'];S.people.push({id:uid(),name:v,emoji:'🙂',color:cols[S.people.length%cols.length],u:now()});save()}
+  render();
+  const again=document.querySelector(`form[data-form="${kind}"] input[name=t]`);if(again&&kind!=='food-new')again.focus();
+});
+
+/* ====================== router ====================== */
+function render(){
+  const p=location.hash.slice(1).split('/').filter(Boolean);const key=p.join('/');
+  const same=key===lastRoute;const y=window.scrollY;let tab='day',html;
+  if(p[0]==='item'){const it=getItem(p[1]);html=it?viewItem(it):'<div class="empty">That item was deleted. <a href="#/day">Back</a></div>'}
+  else if(p[0]==='bucket'){html=viewBucket();tab='bucket'}
+  else if(p[0]==='food'){html=viewFood();tab='food'}
+  else if(p[0]==='more'){html=viewMore();tab='more'}
+  else html=viewDay(p[1]);
+  $('#app').innerHTML=html;
+  document.querySelectorAll('#nav a').forEach(a=>{a.classList.toggle('on',a.dataset.tab===tab);if(a.dataset.tab==='day')a.href='#/day/'+(curDay||'')});
+  if(same)window.scrollTo(0,y);
+  else if(tab==='day'&&p[0]!=='item'){
+    $('#dc-'+curDay)?.scrollIntoView({inline:'center',block:'nearest'});
+    if(scrolledDay!==curDay){scrolledDay=curDay;const n=$('.nowline'),f=$('.blk');window.scrollTo(0,0);if(S.items.length)(n||f)?.scrollIntoView({block:'start'})}
+  }else window.scrollTo(0,0);
+  if(tab==='more')drawQR();
+  lastRoute=key;
+}
+window.addEventListener('hashchange',async()=>{
+  if(location.hash.startsWith('#import=')){await handleImportHash();return}
+  closeSheet();render();
+});
+async function handleImportHash(){
+  const z=location.hash.slice(8);history.replaceState(null,'',location.pathname+'#/day');
+  render();
+  try{askImport(parseIncoming(await b64decompress(z)))}catch(e){toast('That link could not be read: '+e.message)}
+}
+if(location.hash.startsWith('#import='))handleImportHash();else render();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
