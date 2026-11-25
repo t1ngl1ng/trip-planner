@@ -1,5 +1,5 @@
 // Offline cache for the Japan Trip Planner. Bump VERSION when you upload a new index.html.
-const VERSION = 'jtp-v2';
+const VERSION = 'jtp-v3';
 const SHARE = 'jtp-share'; // holds a plan shared into the app until the page picks it up
 const QR = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];

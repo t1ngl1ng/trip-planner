@@ -19,8 +19,12 @@ Then on each phone, open the link in Chrome → ⋮ → **Add to Home screen / I
 
 ## Your data
 - Each phone saves its plan in the browser automatically. Nothing is uploaded anywhere.
-- **Family & share → Share plan file** sends a `.json` file through WhatsApp or email. The other person
-  taps **Import → Merge**. The newest version of each item is kept, so everyone's changes combine.
+- **Family & share → Send my plan as a link** asks for a family password, locks the plan with it
+  (AES-256 encryption) and shares a link. The other person taps the link, sees a password page, enters
+  the password, then chooses **Merge**. The newest version of each item is kept, so everyone's changes
+  combine. Tell people the password separately, not in the same chat. "Send as a file" works the same way.
+- Each phone can remember the family password, so later links open straight away.
+- **Download a backup** is NOT locked: keep it on your own devices.
 - Export a backup now and then. Clearing Chrome's site data deletes the plan on that phone.
 - The QR code opens the app's web address. The plan itself is too big for a QR code, so send the file
   or the "Copy plan as a link" link.

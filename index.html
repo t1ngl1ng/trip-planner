@@ -478,10 +478,11 @@ function viewMore(){
     ${S.people.map(p=>`<div class="pp"><input class="emo" data-pp="emoji" data-pid="${p.id}" value="${esc(p.emoji)}"><input data-pp="name" data-pid="${p.id}" value="${esc(p.name)}"><input type="color" data-pp="color" data-pid="${p.id}" value="${esc(p.color||'#888888')}"><button class="btn sm" data-a="pdel-person" data-pid="${p.id}">✕</button></div>`).join('')}
     <form class="row" data-form="person-add"><input name="t" placeholder="Add a person (name)…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form></div>
   <div class="card stack"><h3>💾 Save &amp; share</h3>
-    <div class="muted">Everything is saved on this phone automatically and works offline. To share, send your plan link — family just tap it and choose <b>Merge</b>. The newest version of each item wins, so everyone's edits combine.</div>
-    <button class="btn pri full" data-a="share-link">📤 Send my plan as a link (WhatsApp…)</button>
+    <div class="muted">Everything is saved on this phone automatically and works offline. To share, send your plan link — it's locked with a family password. Family tap it, enter the password and choose <b>Merge</b>; the newest version of each item wins, so everyone's edits combine.</div>
+    <button class="btn pri full" data-a="share-link">🔒 Send my plan as a link (WhatsApp…)</button>
     <div class="btns"><button class="btn" style="flex:1" data-a="share-file">📎 Send as a file</button><button class="btn" style="flex:1" data-a="import">📥 Load a plan file</button></div>
-    <button class="btn full" data-a="download">⬇️ Download a backup</button>
+    <button class="btn full" data-a="download">⬇️ Download a backup (not locked — keep it private)</button>
+    ${ls.get(PW_KEY,'')?`<div class="muted">🔑 Family password is saved on this phone. <a href="#" data-a="forget-pw">Forget it</a></div>`:''}
     <input type="file" id="importfile" accept=".json,application/json,text/plain" hidden>
     <div class="muted">Last shared/exported: ${esc(ago)}</div></div>
   <div class="card"><h3>📷 QR code</h3><div class="muted" style="margin:4px 0">${location.protocol.startsWith('http')?'Scan to open this planner on another phone, then “Add to Home screen”. Send them the plan file to load your latest inputs.':'QR works once the planner is hosted online (see README). Right now it is opened as a local file.'}</div>
@@ -502,20 +503,73 @@ async function drawQR(){
 const exportJSON=()=>JSON.stringify({app:'japan-trip-planner',v:1,exportedAt:now(),data:S});
 const fname=()=>'japan-trip-plan-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
 function download(text,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
-async function shareFile(){
-  const text=exportJSON();const file=new File([text],fname(),{type:'application/json'});
-  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Japan trip plan',text:'Latest Japan trip plan – open the planner → Family & share → Import'});markShared();return}}
-  catch(e){if(e.name==='AbortError')return}
-  download(text,fname());markShared();toast('Saved to Downloads — attach it in WhatsApp/email');
-}
 function markShared(){S.lastShared=now();save();render()}
-async function b64compress(str){const cs=new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'));const u=new Uint8Array(await new Response(cs).arrayBuffer());let b='';for(let i=0;i<u.length;i+=32768)b+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-async function b64decompress(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text()}
-async function shareLink(){
-  try{const z=await b64compress(JSON.stringify(S));const url=location.origin+location.pathname+'#import='+z;
-    if(navigator.share){try{await navigator.share({title:'Japan trip plan',url});markShared();return}catch(e){if(e.name==='AbortError')return}}
-    await navigator.clipboard.writeText(url);markShared();toast(`Link copied (${Math.round(url.length/1024)} KB) — paste it to family`)}
-  catch(e){toast('Could not make link: '+e.message)}
+
+/* --- password protection for shared plans: AES-GCM, key from the password via PBKDF2 ---
+   Shared links/files carry only encrypted data ("e.<salt|iv|ciphertext>"), so without the
+   password nobody (WhatsApp, GitHub, a forwarded link) can read the plan. */
+const PW_KEY='jtp-pw';
+const b64u={enc:u=>{let b='';for(let i=0;i<u.length;i+=32768)b+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')},
+  dec:s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}};
+const deflate=async str=>new Uint8Array(await new Response(new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+const inflate=async u=>await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+async function pwKey(pw,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function lockText(str,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await pwKey(pw,salt),await deflate(str)));
+  const out=new Uint8Array(28+ct.length);out.set(salt);out.set(iv,16);out.set(ct,28);return'e.'+b64u.enc(out)}
+async function unlockText(tok,pw){const u=b64u.dec(tok.slice(2));
+  return inflate(new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.subarray(16,28)},await pwKey(pw,u.subarray(0,16)),u.subarray(28))))}
+
+let shareKind=null,pendingLock=null;
+function sharePwSheet(kind){
+  shareKind=kind;
+  openSheet(`<div style="text-align:center"><div style="font-size:40px">🔒</div><h2>Protect this plan</h2></div>
+    <p class="muted">Family will need this password to open what you send. Tell them the password in person or by phone, not in the same chat as the ${kind==='link'?'link':'file'}.</p>
+    <form data-form="sharepw" class="stack"><input type="text" name="t" value="${esc(ls.get(PW_KEY,''))}" placeholder="Family password (at least 6 characters)" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div id="pw-err" class="muted" style="color:var(--red)"></div>
+      <button class="btn pri full">${kind==='link'?'📤 Send link':'📎 Send file'}</button></form>`);
+  setTimeout(()=>$('form[data-form=sharepw] input')?.focus(),80);
+}
+async function doShare(pw){
+  ls.set(PW_KEY,pw);const kind=shareKind;closeSheet();toast('🔒 Locking…');
+  try{
+    const tok=await lockText(JSON.stringify(S),pw);
+    if(kind==='file'){
+      const text=JSON.stringify({app:'japan-trip-planner',v:1,locked:tok});const file=new File([text],fname(),{type:'application/json'});
+      try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Japan trip plan'});markShared();return}}catch(e){if(e.name==='AbortError')return}
+      download(text,fname());markShared();toast('Saved to Downloads — attach it in WhatsApp/email');return;
+    }
+    const url=location.origin+location.pathname+'#import='+tok;
+    if(navigator.share){try{await navigator.share({title:'Japan trip plan (password protected)',url});markShared();return}catch(e){if(e.name==='AbortError')return}}
+    await navigator.clipboard.writeText(url);markShared();toast('🔒 Link copied — paste it to family');
+  }catch(e){toast('Could not share: '+e.message)}
+}
+// Everything that comes in (link, file, share from WhatsApp) goes through here
+async function openIncoming(text){
+  text=String(text).trim();const i=text.indexOf('#import=');
+  if(i>=0){const tok=text.slice(i+8).split(/\s/)[0];
+    if(tok.startsWith('e.'))return askPassword(tok);
+    return askImport(parseIncoming(await inflate(b64u.dec(tok))))}
+  const o=JSON.parse(text);if(o.locked)return askPassword(o.locked);
+  askImport(parseIncoming(text));
+}
+async function askPassword(tok){
+  const saved=ls.get(PW_KEY,'');
+  if(saved){try{return askImport(parseIncoming(await unlockText(tok,saved)))}catch(e){}}
+  pendingLock=tok;
+  openSheet(`<div style="text-align:center"><div style="font-size:44px">🔒</div><h2>Password needed</h2>
+    <p class="muted">This trip plan is password protected. Enter the family password to open it.</p></div>
+    <form data-form="unlock" class="stack"><input type="password" name="t" placeholder="Password" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <label class="tog"><input type="checkbox" id="pw-remember" checked> Remember on this phone</label>
+      <div id="pw-err" class="muted" style="color:var(--red)"></div>
+      <button class="btn pri full">🔓 Unlock</button></form>`);
+  setTimeout(()=>$('form[data-form=unlock] input')?.focus(),80);
+}
+async function tryUnlock(pw){
+  const err=$('#pw-err'),remember=$('#pw-remember')?.checked;err.textContent='Checking…';
+  let d;try{d=parseIncoming(await unlockText(pendingLock,pw))}catch(e){err.textContent='❌ Wrong password — try again.';return}
+  if(remember)ls.set(PW_KEY,pw);closeSheet();askImport(d);
 }
 function parseIncoming(text){const o=JSON.parse(text);const d=o.data||o;if(!d.items||!d.people)throw new Error('Not a trip plan file');return d}
 function askImport(d){
@@ -614,10 +668,11 @@ const ACT={
   setme:el=>{ls.set(ME_KEY,el.dataset.v);render()},
   'pdel-person':el=>{const p=person(el.dataset.pid);if(S.people.length<2)return toast('Keep at least one person');if(!confirm(`Remove ${p.name}? Their activities stay, just unassigned.`))return;
     S.deleted[p.id]=now();S.people=S.people.filter(x=>x.id!==p.id);for(const i of S.items)if(i.who.includes(p.id)){i.who=i.who.filter(x=>x!==p.id);i.u=now()}if(pf===p.id)pf='';save();render()},
-  'share-file':()=>shareFile(),
+  'share-file':()=>sharePwSheet('file'),
+  'forget-pw':()=>{try{localStorage.removeItem(PW_KEY)}catch(e){}render();toast('Saved password forgotten')},
   download:()=>{download(exportJSON(),fname());markShared();toast('Backup downloaded')},
   import:()=>$('#importfile').click(),
-  'share-link':()=>shareLink(),
+  'share-link':()=>sharePwSheet('link'),
   'imp-merge':()=>{const n=mergeData(pendingImport);closeSheet();render();toast(n>0?`Merged ✓ (+${n} items)`:'Merged ✓ newest edits kept')},
   'imp-replace':()=>{if(!confirm('Replace everything on this phone?'))return;S=pendingImport;S.deleted=S.deleted||{};save();closeSheet();render();toast('Replaced ✓')},
   reset:()=>{if(confirm('Clear everything on this phone? Download a backup first! You can then load a plan file again.')){S=seed();save();render();toast('Reset ✓')}},
@@ -626,7 +681,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!
 document.addEventListener('change',e=>{
   const el=e.target,ds=el.dataset;
   if(el.id==='qa-start'&&qa){qaSync();if(qa.start&&(!qa.end||toMin(qa.end)<=toMin(qa.start))){qa.end=fromMin(toMin(qa.start)+60);$('#qa-end').value=qa.end}return}
-  if(el.id==='importfile'){const f=el.files[0];if(!f)return;f.text().then(t=>askImport(parseIncoming(t))).catch(err=>toast('Import failed: '+err.message));el.value='';return}
+  if(el.id==='importfile'){const f=el.files[0];if(!f)return;f.text().then(openIncoming).catch(err=>toast('Import failed: '+err.message));el.value='';return}
   if(ds.f){const it=getItem(curItemId);if(!it)return;const v=el.type==='checkbox'?el.checked:el.value;setPath(it,ds.f,v);
     if(ds.f==='start'&&v&&(!it.end||toMin(it.end)<=toMin(v)))it.end=fromMin(toMin(v)+60);
     if(ds.f==='type'&&v==='meal'&&!it.meal)it.meal=newMeal(it.start);
@@ -640,7 +695,10 @@ document.addEventListener('change',e=>{
   if(ds.tf){S.trip[ds.tf]=el.value;touch(S.trip);return}
 });
 document.addEventListener('submit',e=>{
-  const form=e.target,kind=form.dataset.form;if(!kind)return;e.preventDefault();const v=form.t.value.trim();if(!v)return;
+  const form=e.target,kind=form.dataset.form;if(!kind)return;e.preventDefault();const v=form.t.value.trim();
+  if(kind==='sharepw'){if(v.length<6){$('#pw-err').textContent='Use at least 6 characters.';return}doShare(v);return}
+  if(kind==='unlock'){if(v)tryUnlock(v);return}
+  if(!v)return;
   if(kind==='sub-add'){const it=getItem(curItemId);it.subs=it.subs||[];it.subs.push(newSub(v));touch(it)}
   if(kind==='place-add'){const it=getItem(curItemId);it.meal.places.push({id:uid(),name:v,area:'',price:'',note:'',chosen:it.meal.places.length===0});touch(it)}
   if(kind==='food-new'){const f={id:uid(),name:v,zh:'',emoji:'🍽️',region:'Anywhere',tried:{},u:now()};S.foods.push(f);const it=location.hash.startsWith('#/item/')&&getItem(curItemId);if(it&&it.meal){it.meal.foods.push(f.id);touch(it)}else save()}
@@ -673,8 +731,7 @@ function render(){
 async function handleShared(){
   history.replaceState(null,'',location.pathname+'#/day');render();
   try{const c=await caches.open('jtp-share');const r=await c.match('shared-plan');await c.delete('shared-plan');if(!r)return;
-    const t=(await r.text()).trim();const i=t.indexOf('#import=');
-    askImport(parseIncoming(i>=0?await b64decompress(t.slice(i+8).split(/\s/)[0]):t))}
+    await openIncoming(await r.text())}
   catch(e){toast('Could not read the shared plan: '+e.message)}
 }
 window.addEventListener('hashchange',async()=>{
@@ -685,7 +742,7 @@ window.addEventListener('hashchange',async()=>{
 async function handleImportHash(){
   const z=location.hash.slice(8);history.replaceState(null,'',location.pathname+'#/day');
   render();
-  try{askImport(parseIncoming(await b64decompress(z)))}catch(e){toast('That link could not be read: '+e.message)}
+  try{await openIncoming('#import='+z)}catch(e){toast('That link could not be read: '+e.message)}
 }
 if(location.hash.startsWith('#import='))handleImportHash();else if(location.hash==='#shared')handleShared();else render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
