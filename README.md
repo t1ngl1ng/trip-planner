@@ -17,6 +17,13 @@ account to claim the site; otherwise it's deleted after an hour.
 Then on each phone, open the link in Chrome → ⋮ → **Add to Home screen / Install app**.
 (iPhone: Safari → Share → Add to Home Screen.) After the first open it works with no internet.
 
+## Event cards (drag & drop)
+On a day, tap **🃏 Cards**, pick a group (e.g. 🎋 Kyoto day trip) and drag one of its cards onto a time
+(on a phone: hold the card, then drag up). Tap a card instead to choose the day, start time and length.
+Every group also has **☕ Break** and **🍽️ Meal** cards. Hold a block on the timeline to move it; drag its
+bottom edge to change the end time. Manage cards and groups in **Family & share → Manage event cards**.
+Cards are stored in the plan, so they're shared (and password-locked) with it.
+
 ## Your data
 - Each phone saves its plan in the browser automatically. Nothing is uploaded anywhere.
 - **Family & share → Send my plan as a link** asks for a family password, locks the plan with it

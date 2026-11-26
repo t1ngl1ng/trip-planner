@@ -32,7 +32,7 @@ h3{font-size:15px;margin:0}
 .top{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 12px 6px;padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--line)}
 .tt{display:flex;align-items:center;gap:8px}
 .tt h1{font-size:18px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ib{border:0;background:none;font-size:22px;width:38px;height:38px;border-radius:10px;flex:0 0 auto}
+.ib{border:0;background:none;text-decoration:none;text-align:center;line-height:38px;font-size:22px;width:38px;height:38px;border-radius:10px;flex:0 0 auto}
 .ib:active{background:var(--line)}
 .strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 0 4px}
 .strip::-webkit-scrollbar,.chips::-webkit-scrollbar{display:none}
@@ -173,6 +173,32 @@ form.row{margin-top:8px}
 #toast.show{opacity:1}
 details summary{cursor:pointer;color:var(--mute);font-size:14px;margin:6px 0}
 .wishpick{margin-top:12px}
+/* breaks / cushions */
+.t-brk{background:repeating-linear-gradient(135deg,var(--card) 0 6px,var(--line) 6px 8px);border-color:var(--mute)}
+.blk{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.blk .rz{position:absolute;left:25%;right:25%;bottom:0;height:14px;cursor:ns-resize;touch-action:none}
+.blk .rz:after{content:"";position:absolute;left:50%;bottom:3px;width:28px;margin-left:-14px;height:3px;border-radius:2px;background:var(--ink);opacity:.3}
+.blk.lift{z-index:9;box-shadow:0 8px 22px rgba(0,0,0,.32);opacity:.92}
+/* event card tray */
+.tray{position:fixed;left:0;right:0;bottom:var(--navh,57px);z-index:28;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.1);max-width:680px;margin:0 auto;border-radius:14px 14px 0 0}
+.tray-h{display:flex;align-items:center;gap:6px;padding:7px 10px 0}
+.tray-h b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}
+.tray-h .ib{width:32px;height:32px;font-size:18px;line-height:32px;padding:0}
+.tray-b{display:flex;gap:8px;overflow-x:auto;padding:8px 10px 10px;scrollbar-width:none}
+.tray-b::-webkit-scrollbar{display:none}
+.tray .muted{padding:0 10px 10px}
+.gtile{flex:0 0 auto;width:112px;height:90px;border:1px solid var(--line);border-radius:12px;background:var(--bg);padding:6px 8px;text-align:left;display:flex;flex-direction:column}
+.gtile span{font-size:22px;line-height:1.2}
+.gtile b,.ccard .ct{font-size:12.5px;font-weight:600;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gtile small{color:var(--mute);font-size:11.5px;margin-top:auto}
+.ccard{flex:0 0 auto;width:118px;height:90px;border-radius:10px;border-left:4px solid;padding:6px 7px;display:flex;flex-direction:column;touch-action:pan-x;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab;box-shadow:var(--shadow)}
+.ccard .ce{font-size:20px;line-height:1.15}
+.ccard .cm{margin-top:auto;font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dghost{position:fixed;left:0;top:0;z-index:70;width:124px;padding:8px;border-radius:10px;border-left:4px solid;font-size:13px;font-weight:600;pointer-events:none;box-shadow:0 8px 22px rgba(0,0,0,.3);opacity:.93}
+.dropind{position:absolute;left:46px;right:2px;border:2px dashed var(--red);background:var(--red2);border-radius:8px;z-index:8;font-size:12px;font-weight:600;padding:2px 6px;pointer-events:none;color:var(--red);overflow:hidden}
+body.dragging{user-select:none;-webkit-user-select:none}
+body.tray-on{padding-bottom:calc(66px + 140px + env(safe-area-inset-bottom))}
+body.tray-on .fab{display:none}
 </style>
 </head>
 <body>
@@ -203,7 +229,9 @@ const dfmt=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+Str
 const dlabel=d=>{if(!d)return'Wishlist';const x=dparse(d);return`${DOW[x.getDay()]} ${x.getDate()} ${MON[x.getMonth()]}`};
 const today=()=>dfmt(new Date());
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-const TYPE={act:{label:'Activity',emoji:'📍'},meal:{label:'Meal',emoji:'🍽️'},travel:{label:'Travel',emoji:'✈️'}};
+const TYPE={act:{label:'Activity',emoji:'📍'},meal:{label:'Meal',emoji:'🍽️'},travel:{label:'Travel',emoji:'✈️'},brk:{label:'Break',emoji:'☕'}};
+const NOTASK={travel:1,brk:1}; // travel and breaks aren't bucket-list items
+const isTask=i=>!NOTASK[i.type];
 const KINDS=['Breakfast','Lunch','Dinner','Snack'];
 const KIND_EMO={Breakfast:'🍳',Lunch:'🍱',Dinner:'🍽️',Snack:'🍡'};
 const KIND_TIME={Breakfast:'08:00',Lunch:'12:30',Snack:'15:30',Dinner:'18:30'};
@@ -241,10 +269,11 @@ function seed(){
   // Starts blank on purpose: the real itinerary is loaded from a plan file, so nothing personal is in the public page.
   const items=[];
   const st=new Date(),en=new Date();en.setDate(en.getDate()+6);const days={};
-  return {app:'japan-trip-planner',v:1,trip:{name:'My Japan Trip',start:dfmt(st),end:dfmt(en),u:0},people,foods,items,days,deleted:{},lastShared:0};
+  return {app:'japan-trip-planner',v:1,trip:{name:'My Japan Trip',start:dfmt(st),end:dfmt(en),u:0},people,foods,items,days,groups:[],cards:[],deleted:{},lastShared:0};
 }
 
-let S=load()||seed();
+function normS(s){s.groups=s.groups||[];s.cards=s.cards||[];s.deleted=s.deleted||{};s.days=s.days||{};return s}
+let S=normS(load()||seed());
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.items)return s}catch(e){}return null}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Could not save: '+e.message)}}
 function touch(o){if(o)o.u=now();save()}
@@ -301,24 +330,24 @@ function viewDay(date){
   let sh=7,eh=22;for(const t of timed){sh=Math.min(sh,Math.floor(t._s/60));eh=Math.max(eh,Math.ceil(t._e/60))}
   eh=Math.min(eh,24);
   layoutLanes(timed);
-  const strip=days.map(d=>{const its=S.items.filter(i=>i.day===d&&visible(i)&&i.type!=='travel');const dd=its.length&&its.every(i=>i.status!=='plan');const x=dparse(d);
+  const strip=days.map(d=>{const its=S.items.filter(i=>i.day===d&&visible(i)&&isTask(i));const dd=its.length&&its.every(i=>i.status!=='plan');const x=dparse(d);
     return `<a href="#/day/${d}" id="dc-${d}" class="dchip ${d===date?'on':''} ${d===today()?'today':''}"><small>${DOW[x.getDay()]}</small><b>${x.getDate()}</b><i class="${its.length?(dd?'d':'p'):''}"></i></a>`}).join('');
-  const nPlan=all.filter(i=>i.type!=='travel').length,nDone=all.filter(i=>i.status==='done'&&i.type!=='travel').length;
+  const nPlan=all.filter(i=>isTask(i)).length,nDone=all.filter(i=>i.status==='done'&&isTask(i)).length;
   let hours='';for(let h=sh;h<=eh;h++)hours+=`<div class="hr" style="top:${(h-sh)*HP}px"><span>${String(h%24).padStart(2,'0')}:00</span></div>`;
   const blocks=timed.map(t=>{const i=t.it;const top=(t._s-sh*60)/60*HP,h=Math.max(26,(t._e-t._s)/60*HP-2);
-    const ghost=actual&&i.status!=='done'&&i.type!=='travel';
+    const ghost=actual&&i.status!=='done'&&isTask(i);
     const subs=i.subs?.length?` · ${i.subs.filter(s=>s.done).length}/${i.subs.length}`:'';
     const mealInfo=i.type==='meal'?(i.meal.places.find(p=>p.chosen)?.name||''):'';
     const w=100/t._n;
     return `<div class="blk t-${i.type} s-${i.status} ${i.tentative?'tent':''} ${ghost?'ghost':''} ${t._n>2?'narrow':''}" data-a="open" data-id="${i.id}" style="top:${top}px;height:${h}px;left:calc(${t._c*w}% + 2px);width:calc(${w}% - 4px)">
       <div class="bt">${esc(i.emoji)} ${esc(i.title)}</div>
       <div class="bm">${fromMin(t._s)}–${fromMin(t._e)}${subs} ${whoMini(i.who)}${mealInfo?' · '+esc(mealInfo):''}</div>
-      ${i.type!=='travel'?`<button class="tick" data-a="quickdone" data-id="${i.id}">${i.status==='done'?'✓':''}</button>`:''}</div>`}).join('');
+      ${isTask(i)?`<button class="tick" data-a="quickdone" data-id="${i.id}">${i.status==='done'?'✓':''}</button>`:''}${!actual?'<div class="rz"></div>':''}</div>`}).join('');
   let nowl='';if(date===today()){const n=new Date(),m=n.getHours()*60+n.getMinutes();if(m>=sh*60&&m<=eh*60)nowl=`<div class="nowline" style="top:${(m-sh*60)/60*HP}px"></div>`}
   return `<div class="top">
     <div class="tt"><h1>🇯🇵 ${esc(S.trip.name)}</h1><button class="ib" data-a="edit-day" title="Edit day">✏️</button></div>
     <div class="strip" id="strip">${strip}</div>
-    <div class="dayhead"><div class="dt"><b>${esc(dlabel(date))} · ${esc(di.title||'')}</b><small>${esc(di.note||'')}${di.note?' · ':''}${nDone}/${nPlan} done</small></div></div>
+    <div class="dayhead"><div class="dt"><b>${esc(dlabel(date))} · ${esc(di.title||'')}</b><small>${esc(di.note||'')}${di.note?' · ':''}${nDone}/${nPlan} done</small></div><button class="btn sm ${trayOpen?'pri':''}" data-a="tray">🃏 Cards</button></div>
     <div class="ctl"><div class="seg"><button data-a="mode" data-v="plan" class="${!actual?'on':''}">Plan</button><button data-a="mode" data-v="actual" class="${actual?'on':''}">Actual</button></div>
       <div class="chips">${personChips(pf?[pf]:[],'pf','👪 All')}</div></div>
   </div>
@@ -327,9 +356,9 @@ function viewDay(date){
     <input type="file" id="importfile" accept=".json,application/json,text/plain" hidden>
     <button class="btn pri full" data-a="import">📥 Load a plan file</button></div>`:''}
   ${untimed.length?`<div class="untimed"><div class="lbl">Anytime today</div><div class="chips wrap">${untimed.map(i=>`<button class="chip" data-a="open" data-id="${i.id}">${i.status==='done'?'✅':esc(i.emoji)} ${esc(i.title)}</button>`).join('')}</div></div>`:''}
-  <div class="tl" style="height:${(eh-sh)*HP+10}px">${hours}<div class="tl-grid" data-a="tl-tap" data-sh="${sh}"></div><div class="lanes">${blocks}</div>${nowl}</div>
-  <div class="hint">${actual?'Actual mode: faded = planned but not done yet. ＋ logs what you did.':'Tap an empty time to add · tap a block for details · ○ to tick off'}</div>
-  <button class="fab" data-a="qa">＋</button>`;
+  <div class="tl" data-sh="${sh}" data-eh="${eh}" style="height:${(eh-sh)*HP+10}px">${hours}<div class="tl-grid" data-a="tl-tap" data-sh="${sh}"></div><div class="lanes">${blocks}</div>${nowl}</div>
+  <div class="hint">${actual?'Actual mode: faded = planned but not done yet. ＋ logs what you did.':trayOpen?'Hold &amp; drag a card onto a time, or tap a card to pick a time':'Tap an empty time to add · hold a block to move it · drag its bottom edge to resize'}</div>
+  <button class="fab" data-a="qa">＋</button>${trayOpen?trayHTML():''}`;
 }
 
 /* ====================== ITEM DETAIL ====================== */
@@ -358,6 +387,7 @@ function viewItem(it){
   <div class="card btns">
     ${it.day?`<button class="btn" data-a="to-wish">⭐ Move back to wishlist</button>`:''}
     <button class="btn" data-a="dup">⧉ Duplicate (e.g. for another group)</button>
+    ${it.type!=='brk'?`<button class="btn" data-a="to-card">🃏 Save as a reusable card</button>`:''}
   </div>`;
 }
 function actualCard(it){
@@ -399,7 +429,7 @@ function mealSection(it){
 
 /* ====================== BUCKET LIST ====================== */
 function viewBucket(){
-  const acts=S.items.filter(i=>i.type!=='travel'&&visible(i));
+  const acts=S.items.filter(i=>isTask(i)&&visible(i));
   const done=acts.filter(i=>i.status==='done'),wish=acts.filter(i=>!i.day&&i.status==='plan'),todo=acts.filter(i=>i.day&&i.status==='plan'),skip=acts.filter(i=>i.status==='skip');
   const total=acts.filter(i=>i.status==='done'||(i.status==='plan'&&!i.tentative)).length,pct=total?done.length/total:0;const C=2*Math.PI*34;
   const row=i=>`<div class="li ${i.status==='done'?'done':''}"><button class="tk ${i.status==='done'?'on':''}" data-a="quickdone" data-id="${i.id}">${i.status==='done'?'✓':''}</button>
@@ -477,6 +507,8 @@ function viewMore(){
   <div class="card"><h3>👨‍👩‍👧 People</h3><div class="muted" style="margin:4px 0 8px">Assign people to activities and meals so groups can split up (e.g. skiing vs. onsen). Leave “Everyone” for whole-group plans.</div>
     ${S.people.map(p=>`<div class="pp"><input class="emo" data-pp="emoji" data-pid="${p.id}" value="${esc(p.emoji)}"><input data-pp="name" data-pid="${p.id}" value="${esc(p.name)}"><input type="color" data-pp="color" data-pid="${p.id}" value="${esc(p.color||'#888888')}"><button class="btn sm" data-a="pdel-person" data-pid="${p.id}">✕</button></div>`).join('')}
     <form class="row" data-form="person-add"><input name="t" placeholder="Add a person (name)…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form></div>
+  <div class="card stack"><h3>🃏 Event cards</h3><div class="muted">Ready-made events, grouped by bigger plans (e.g. Kyoto day trip), to drag into any day.</div>
+    <a class="btn full" href="#/cards">Manage event cards (${S.cards.length})</a></div>
   <div class="card stack"><h3>💾 Save &amp; share</h3>
     <div class="muted">Everything is saved on this phone automatically and works offline. To share, send your plan link — it's locked with a family password. Family tap it, enter the password and choose <b>Merge</b>; the newest version of each item wins, so everyone's edits combine.</div>
     <button class="btn pri full" data-a="share-link">🔒 Send my plan as a link (WhatsApp…)</button>
@@ -497,6 +529,183 @@ async function drawQR(){
   try{await loadScript(QR_SRC);const url=location.origin+location.pathname;const q=qrcode(0,'M');q.addData(url);q.make();
     box.innerHTML=`<div class="qr">${q.createSvgTag({cellSize:4,margin:2,scalable:true})}</div><div class="muted" style="text-align:center;word-break:break-all">${esc(url)}</div>`}
   catch(e){box.innerHTML='<div class="muted">QR needs internet the first time it loads.</div>'}
+}
+
+/* ====================== EVENT CARDS ======================
+   Ready-made events (cards) grouped under a bigger plan (group), e.g. "🎋 Kyoto day trip" → its sights.
+   Cards live in the plan data (S.groups / S.cards), so they travel with the shared plan, not the public page.
+   Every group also offers two built-in cards: ☕ Break and 🍽️ Meal (ids "brk:<group>" / "meal:<group>"). */
+const DURS=[15,30,45,60,75,90,105,120,150,180,210,240,300,360,420,480,540,600,720];
+const fmtDur=m=>{m=+m||0;const h=Math.floor(m/60),r=m%60;return((h?h+'h':'')+(r?(h?' ':'')+r+'m':''))||'0m'};
+const snap=m=>Math.round(m/15)*15;
+const cleanTitle=t=>String(t||'').replace(/^[A-E]\)\s*(others:\s*)?/i,'').trim();
+let trayOpen=ls.get('jtp-tray','')==='1',trayGroup=ls.get('jtp-tg','~'),curCardId=null,curGroupId=null,placeCardId=null,cardFromItemId=null;
+const getGroup=id=>S.groups.find(g=>g.id===id);
+function groupList(){const gs=[...S.groups].sort((a,b)=>(a.o??0)-(b.o??0));if(S.cards.some(c=>!getGroup(c.g)))gs.push({id:'',title:'Other',emoji:'📦',virtual:true});return gs}
+function cardsIn(gid){return S.cards.filter(c=>gid?c.g===gid:!getGroup(c.g)).sort((a,b)=>(a.o??0)-(b.o??0))}
+function getCard(id){
+  if(!id)return null;const m=/^(brk|meal):(.*)$/.exec(id);
+  if(m){const g=getGroup(m[2])||{id:'',title:'Other'};
+    return m[1]==='brk'?{id,g:g.id,virtual:1,type:'brk',emoji:'☕',title:'Break / buffer',dur:g.brk||30,area:g.area||''}
+      :{id,g:g.id,virtual:1,type:'meal',emoji:'🍽️',title:'Meal time',dur:g.meal||60,area:g.area||''}}
+  return S.cards.find(c=>c.id===id)||null;
+}
+const usedDays=id=>[...new Set(S.items.filter(i=>i.card===id&&i.day).map(i=>i.day))].sort();
+function newGroup(title,emoji='🗂️',area=''){const g={id:uid(),title,emoji,area,brk:30,meal:60,o:S.groups.length,u:now()};S.groups.push(g);save();return g}
+function newCard(o){const c=Object.assign({id:uid(),g:'',title:'',emoji:'📍',type:'act',dur:60,area:'',place:'',notes:'',subs:[],places:[],o:S.cards.length,u:now()},o);S.cards.push(c);save();return c}
+function cardFromItem(it,gid){
+  const s=toMin(it.start),e=toMin(it.end);
+  return newCard({g:gid,title:cleanTitle(it.title),emoji:it.emoji,type:it.type,dur:s!=null&&e>s?e-s:60,area:it.area||'',place:it.place||'',notes:it.notes||'',
+    subs:(it.subs||[]).map(x=>x.title),places:it.meal?it.meal.places.map(p=>p.name):[]});
+}
+function itemFromCard(c,day,start,dur){
+  dur=+dur||c.dur||60;const g=getGroup(c.g);const end=fromMin(Math.min(toMin(start)+dur,1439));
+  const o={type:c.type||'act',title:c.title,emoji:c.emoji,day,start,end,area:c.area||g?.area||'',place:c.place||'',notes:c.notes||'',who:pf?[pf]:[],card:c.virtual?'':c.id};
+  if(c.virtual&&c.type==='meal'){const k=kindFor(start);o.title=k+(o.area?' – '+o.area:'');o.emoji=KIND_EMO[k]}
+  const it=newItem(o);it.subs=(c.subs||[]).map(newSub);
+  if(it.type==='meal')it.meal=newMeal(start,{places:c.places||[]});
+  if(it.type==='meal'&&it.meal.places.length===1)it.meal.places[0].chosen=true;
+  S.items.push(it);save();return it;
+}
+// "Make cards from my calendar": one card per distinct event, grouped by area (travel → Getting around)
+function buildCards(){
+  let n=0;const byT=new Map(S.cards.map(c=>[cleanTitle(c.title).toLowerCase(),c]));
+  for(const it of S.items){if(it.type==='brk')continue;const k=cleanTitle(it.title).toLowerCase();let c=byT.get(k);
+    if(!c){const gname=it.type==='travel'?'Getting around':(it.area||'Other');
+      const g=S.groups.find(x=>x.title.toLowerCase()===gname.toLowerCase())||newGroup(gname,it.type==='travel'?'🚌':'📍',it.type==='travel'?'':it.area);
+      c=cardFromItem(it,g.id);byT.set(k,c);n++}
+    if(!it.card)it.card=c.id;
+  }
+  save();return n;
+}
+function cardHTML(c){const used=usedDays(c.id);
+  return `<div class="ccard t-${c.type||'act'}" data-card="${c.id}" data-a="pcard" data-id="${c.id}"><div class="ce">${esc(c.emoji)}</div><div class="ct">${esc(c.title)}</div>
+    <div class="cm">⏱ ${fmtDur(c.dur)}${used.length?' · 📅 '+used.map(d=>dparse(d).getDate()).join(','):''}</div></div>`}
+function trayHTML(){
+  const gs=groupList();const g=trayGroup!=='~'?gs.find(x=>x.id===trayGroup):null;
+  if(!g){
+    return `<div class="tray" id="tray"><div class="tray-h"><b>🃏 Pick a group, then drag its cards</b><a class="ib" href="#/cards" title="Edit cards">✏️</a><button class="ib" data-a="tray">✕</button></div>
+      ${gs.length?`<div class="tray-b">${gs.map(x=>`<button class="gtile" data-a="tg" data-v="${x.id}"><span>${esc(x.emoji)}</span><b>${esc(x.title)}</b><small>${cardsIn(x.id).length} cards</small></button>`).join('')}</div>`
+        :`<div class="muted">No event cards yet. ${S.items.length?'<a href="#" data-a="cards-build">Make them from my calendar</a> or ':''}<a href="#/cards">create your own</a>.</div>`}</div>`;
+  }
+  const cs=[getCard('brk:'+g.id),getCard('meal:'+g.id),...cardsIn(g.id)];
+  return `<div class="tray" id="tray"><div class="tray-h"><button class="ib" data-a="tg" data-v="~">‹</button><b>${esc(g.emoji)} ${esc(g.title)}</b>${g.virtual?'':`<button class="ib" data-a="group-edit" data-id="${g.id}" title="Edit group">✏️</button>`}<button class="ib" data-a="tray">✕</button></div>
+    <div class="tray-b">${cs.map(cardHTML).join('')}</div></div>`;
+}
+function durSelect(name,val,attr,id){val=+val||60;const opts=DURS.includes(val)?DURS:[...DURS,val].sort((a,b)=>a-b);
+  return `<select ${id?`id="${id}"`:`data-${attr}="${name}"`}>${opts.map(m=>`<option value="${m}" ${m===val?'selected':''}>${fmtDur(m)}</option>`).join('')}</select>`}
+function nextFree(day){let m=9*60;for(const i of S.items)if(i.day===day&&i.end&&visible(i)){const e=toMin(i.end);if(e>m&&e<23*60)m=e}return fromMin(Math.ceil(m/15)*15)}
+function placeSheet(id){
+  const c=getCard(id);if(!c)return;placeCardId=id;const day=curDay||defaultDay();const used=usedDays(c.id);
+  openSheet(`<div class="row" style="align-items:flex-start"><span style="flex:0 0 auto;font-size:32px">${esc(c.emoji)}</span><div><h2 style="margin:0">${esc(c.title)}</h2>
+      <div class="muted">${esc(getGroup(c.g)?.title||'Other')}${used.length?' · already on '+used.map(dlabel).join(', '):''}</div></div></div>
+    <div class="grid3"><select id="pc-day">${tripDays().map(d=>`<option value="${d}" ${d===day?'selected':''}>${dlabel(d)}</option>`).join('')}</select>
+      <label class="muted">Start<input type="time" id="pc-start" value="${nextFree(day)}"></label><label class="muted">How long${durSelect('',c.dur,'','pc-dur')}</label></div>
+    <div class="btns" style="margin-top:12px">${c.virtual?(c.g?`<button class="btn" data-a="group-edit" data-id="${c.g}">✏️ Default length</button>`:''):`<button class="btn" data-a="card-edit" data-id="${c.id}">✏️ Edit card</button>`}
+      <button class="btn pri" style="flex:1" data-a="pc-add">＋ Add to plan</button></div>
+    <div class="muted" style="margin-top:8px">Tip: on the day view you can also hold a card and drag it onto a time.</div>`);
+}
+function cardSheet(id){
+  const c=S.cards.find(x=>x.id===id);if(!c)return;curCardId=id;const used=usedDays(c.id);
+  openSheet(`<div class="row"><input class="emo" data-cf="emoji" value="${esc(c.emoji)}" maxlength="4"><input class="ttl" data-cf="title" value="${esc(c.title)}" placeholder="Card name"></div>
+    <div class="grid2"><label class="muted">Belongs to<select data-cf="g">${S.groups.map(g=>`<option value="${g.id}" ${g.id===c.g?'selected':''}>${esc(g.emoji)} ${esc(g.title)}</option>`).join('')}
+        <option value="" ${!getGroup(c.g)?'selected':''}>📦 Other</option><option value="__new">＋ New group…</option></select></label>
+      <label class="muted">Default length${durSelect('dur',c.dur,'cf')}</label>
+      <label class="muted">Type<select data-cf="type">${Object.entries(TYPE).map(([k,v])=>`<option value="${k}" ${k===c.type?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select></label>
+      <label class="muted">Area<input data-cf="area" value="${esc(c.area)}" placeholder="Kyoto, Osaka…"></label></div>
+    <div class="stack"><input data-cf="place" value="${esc(c.place)}" placeholder="📍 Place / address for maps">
+      ${c.type==='meal'?`<textarea data-cf="places" placeholder="Restaurant ideas, one per line">${esc((c.places||[]).join('\n'))}</textarea>`
+        :`<textarea data-cf="subs" placeholder="Plan inside, one per line (rides, stops, tickets…)">${esc((c.subs||[]).join('\n'))}</textarea>`}
+      <textarea data-cf="notes" placeholder="Notes, tips, booking info…">${esc(c.notes)}</textarea></div>
+    <div class="muted" style="margin-top:6px">${used.length?'On: '+used.map(dlabel).join(', ')+'. Editing the card doesn’t change events already on the calendar.':'Not on any day yet.'}</div>
+    <div class="btns" style="margin-top:12px"><button class="btn" data-a="card-del">🗑️ Delete</button><button class="btn" data-a="pcard" data-id="${c.id}">📅 Put on a day</button><button class="btn pri" data-a="close" style="flex:1">Done</button></div>`);
+}
+function groupSheet(id){
+  const g=getGroup(id);if(!g)return;curGroupId=id;
+  openSheet(`<h2>🗂️ Group</h2><div class="row"><input class="emo" data-gf="emoji" value="${esc(g.emoji)}" maxlength="4"><input class="ttl" data-gf="title" value="${esc(g.title)}" placeholder="e.g. Kyoto day trip"></div>
+    <div class="stack" style="margin-top:8px"><input data-gf="area" value="${esc(g.area||'')}" placeholder="Area for its cards and meals (e.g. Kyoto)"></div>
+    <div class="grid2"><label class="muted">☕ Break card length${durSelect('brk',g.brk||30,'gf')}</label><label class="muted">🍽️ Meal card length${durSelect('meal',g.meal||60,'gf')}</label></div>
+    <div class="btns" style="margin-top:12px"><button class="btn" data-a="group-up">↑ Move up</button><button class="btn" data-a="group-del">🗑️ Delete group</button><button class="btn pri" data-a="close" style="flex:1">Done</button></div>`);
+}
+function viewCards(){
+  const gs=groupList();
+  return `<div class="top"><div class="tt"><button class="ib" data-a="back2">‹</button><h1>🃏 Event cards</h1></div></div>
+  <div class="card stack"><div class="muted">Cards are ready-made events, grouped under a bigger plan (e.g. 🎋 Kyoto day trip → its sights). On a day, tap <b>🃏 Cards</b>, pick a group, then drag a card onto a time. Every group also has ☕ Break and 🍽️ Meal cards for cushions and meal times.</div>
+    <div class="btns"><button class="btn pri" style="flex:1" data-a="group-new">＋ New group</button>${S.items.length?'<button class="btn" style="flex:1" data-a="cards-build">⚙️ Make cards from my calendar</button>':''}</div></div>
+  ${gs.map(g=>{const cs=cardsIn(g.id);
+    return `<div class="card"><div class="sh"><h3 ${g.virtual?'':`data-a="group-edit" data-id="${g.id}" style="cursor:pointer"`}>${esc(g.emoji)} ${esc(g.title)}${g.virtual?'':' <span class="muted">✏️</span>'}</h3><span>${cs.length} cards</span></div>
+      <div class="list">${cs.map(c=>{const u=usedDays(c.id);return `<div class="li"><span style="font-size:22px;flex:0 0 28px;text-align:center">${esc(c.emoji)}</span><div class="lb" data-a="card-edit" data-id="${c.id}"><b>${esc(c.title)}</b>
+        <small>${TYPE[c.type]?.label||''} · ⏱ ${fmtDur(c.dur)}${c.area?' · '+esc(c.area):''}${c.subs?.length?' · '+c.subs.length+' inside':''}${u.length?' · 📅 '+u.map(d=>dparse(d).getDate()).join(','):''}</small></div></div>`}).join('')||'<div class="empty">No cards yet</div>'}</div>
+      ${g.virtual?'<div class="muted">Cards whose group was deleted. Open one to move it to a group.</div>':`<form class="row" data-form="card-add" data-g="${g.id}"><input name="t" placeholder="Add a card to this group…" autocomplete="off"><button class="btn pri" style="flex:0 0 auto">Add</button></form>
+      <div class="muted" style="margin-top:6px">Also in this group: ☕ Break ${fmtDur(g.brk||30)} · 🍽️ Meal ${fmtDur(g.meal||60)}</div>`}</div>`}).join('')}`;
+}
+
+/* ---- drag & drop: cards onto the timeline, move blocks (hold), resize blocks (bottom edge) ---- */
+let drag=null,suppressClick=0;
+document.addEventListener('pointerdown',e=>{
+  if(e.button>0||drag)return;const t=e.target;
+  const cc=t.closest('.ccard'),rz=t.closest('.rz'),blk=!rz&&!t.closest('.tick')&&t.closest('.blk');
+  if(!cc&&!rz&&!(blk&&mode==='plan'))return;
+  const el=cc||(rz?rz.closest('.blk'):blk);
+  drag={kind:cc?'card':rz?'rz':'move',el,id:cc?cc.dataset.card:el.dataset.id,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,pid:e.pointerId,touch:e.pointerType!=='mouse',on:false};
+  if(rz){e.preventDefault();beginDrag()}
+  else if(drag.touch)drag.timer=setTimeout(beginDrag,cc?280:400);
+});
+document.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.pid)return;drag.x=e.clientX;drag.y=e.clientY;
+  if(!drag.on){const dx=drag.x-drag.x0,dy=drag.y-drag.y0,d=Math.hypot(dx,dy);
+    if(!drag.touch){if(d>5)beginDrag();return}
+    if(d>8){if(drag.kind==='card'&&Math.abs(dy)>Math.abs(dx))beginDrag();else{clearTimeout(drag.timer);drag=null}}
+    return}
+  e.preventDefault();moveDrag();
+});
+document.addEventListener('pointerup',e=>{if(drag&&e.pointerId===drag.pid)endDrag(true)});
+document.addEventListener('pointercancel',e=>{if(drag&&e.pointerId===drag.pid)endDrag(false)});
+document.addEventListener('touchmove',e=>{if(drag&&drag.on)e.preventDefault()},{passive:false});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.blk,.ccard'))e.preventDefault()});
+document.addEventListener('click',e=>{if(Date.now()-suppressClick<450){e.stopPropagation();e.preventDefault()}},true);
+function beginDrag(){
+  const d=drag;if(!d||d.on)return;clearTimeout(d.timer);const tl=$('.tl');if(!tl){drag=null;return}
+  d.on=true;d.tl=tl;d.sh=+tl.dataset.sh;d.eh=+tl.dataset.eh;try{d.el.setPointerCapture(d.pid)}catch(err){}
+  try{navigator.vibrate&&navigator.vibrate(15)}catch(err){}
+  document.body.classList.add('dragging');
+  if(d.kind==='card'){const c=getCard(d.id);if(!c){drag=null;return}d.card=c;d.dur=c.dur||60;
+    d.ghost=document.createElement('div');d.ghost.className='dghost t-'+(c.type||'act');d.ghost.textContent=c.emoji+' '+c.title;document.body.appendChild(d.ghost);
+    d.ind=document.createElement('div');d.ind.className='dropind';d.ind.style.display='none';tl.appendChild(d.ind)}
+  else{const it=getItem(d.id);if(!it){drag=null;return}d.it=it;d.s=toMin(it.start);d.e=toMin(it.end);if(d.e==null||d.e<=d.s)d.e=d.s+60;
+    d.off=d.y0-d.el.getBoundingClientRect().top;d.el.classList.add('lift')}
+  moveDrag();requestAnimationFrame(dragLoop);
+}
+function moveDrag(){
+  const d=drag;if(!d||!d.on)return;const r=d.tl.getBoundingClientRect();const toM=y=>d.sh*60+(y-r.top)/HP*60;
+  if(d.kind==='card'){
+    d.ghost.style.transform=`translate(${d.x-62}px,${d.y-56}px)`;
+    const tray=$('#tray')?.getBoundingClientRect();
+    if(d.y<r.top-30||d.y>r.bottom+30||(tray&&d.y>tray.top)){d.ind.style.display='none';d.ns=null;return}
+    let s=snap(toM(d.y-16));s=Math.max(d.sh*60,Math.min(s,24*60-15));d.ns=s;
+    Object.assign(d.ind.style,{display:'',top:(s-d.sh*60)/60*HP+'px',height:Math.max(22,Math.min(d.dur,24*60-s)/60*HP-2)+'px'});
+    d.ind.textContent=`${fromMin(s)}–${fromMin(s+d.dur)} · ${d.card.title}`;
+  }else{
+    if(d.kind==='move'){const len=d.e-d.s;let s=snap(toM(d.y-d.off));s=Math.max(0,Math.min(s,24*60-len));d.ns=s;d.ne=s+len}
+    else{const e=snap(toM(d.y));d.ns=d.s;d.ne=Math.max(d.s+15,Math.min(e,24*60-1))}
+    d.el.style.top=(d.ns-d.sh*60)/60*HP+'px';d.el.style.height=Math.max(26,(d.ne-d.ns)/60*HP-2)+'px';
+    const bm=d.el.querySelector('.bm');if(bm)bm.textContent=fromMin(d.ns)+'–'+fromMin(d.ne);
+  }
+}
+function dragLoop(){
+  const d=drag;if(!d||!d.on)return;
+  const top=$('.top')?.getBoundingClientRect().bottom||0,bot=($('#tray')||$('#nav')).getBoundingClientRect().top;
+  let v=0;if(d.y<top+50)v=-(top+50-d.y)/4;else if(d.y>bot-50&&d.y<bot)v=(d.y-(bot-50))/4;
+  if(v){window.scrollBy(0,v);moveDrag()}
+  requestAnimationFrame(dragLoop);
+}
+function endDrag(ok){
+  const d=drag;drag=null;if(!d)return;clearTimeout(d.timer);if(!d.on)return;
+  d.ghost?.remove();d.ind?.remove();document.body.classList.remove('dragging');suppressClick=Date.now();
+  if(ok&&d.kind==='card'&&d.ns!=null){const it=itemFromCard(d.card,curDay,fromMin(d.ns));render();toast(`Added ${it.emoji} ${it.title} ${it.start}–${it.end}`);return}
+  if(ok&&d.kind!=='card'&&d.ns!=null&&(d.ns!==d.s||d.ne!==d.e)){const it=d.it;it.start=fromMin(d.ns);it.end=fromMin(d.ne);
+    if(it.type==='meal'&&d.kind==='move')it.meal.kind=kindFor(it.start);touch(it);render();toast(`🕒 ${it.title} ${it.start}–${it.end}`);return}
+  render();
 }
 
 /* ====================== sync / export ====================== */
@@ -573,7 +782,7 @@ async function tryUnlock(pw){
 }
 function parseIncoming(text){const o=JSON.parse(text);const d=o.data||o;if(!d.items||!d.people)throw new Error('Not a trip plan file');return d}
 function askImport(d){
-  if(!S.items.length){S=d;S.deleted=S.deleted||{};save();curDay=null;location.hash='#/day';render();toast(`📥 Plan loaded: ${d.items.length} items`);return}
+  if(!S.items.length){S=normS(d);save();curDay=null;location.hash='#/day';render();toast(`📥 Plan loaded: ${d.items.length} items`);return}
   openSheet(`<h2>📥 Import plan</h2><div class="muted">${d.items.length} items · ${d.foods?.length||0} foods · ${d.people.length} people</div>
     <p><b>Merge</b> keeps the newest version of every item from both phones (recommended). <b>Replace</b> throws away what's on this phone.</p>
     <div class="btns"><button class="btn" data-a="close">Cancel</button><button class="btn" data-a="imp-replace">Replace all</button><button class="btn pri" style="flex:1" data-a="imp-merge">Merge</button></div>`);
@@ -585,6 +794,7 @@ function mergeData(inc){
   const mergeArr=(a,b)=>{const m=new Map(a.map(x=>[x.id,x]));for(const x of b||[]){const c=m.get(x.id);if(!c||(x.u||0)>(c.u||0))m.set(x.id,x)}return[...m.values()].filter(x=>!(del[x.id]>=(x.u||0)))};
   const n0=S.items.length;
   S.items=mergeArr(S.items,inc.items);S.foods=mergeArr(S.foods,inc.foods);S.people=mergeArr(S.people,inc.people);
+  S.groups=mergeArr(S.groups,inc.groups);S.cards=mergeArr(S.cards,inc.cards);
   for(const[d,v]of Object.entries(inc.days||{})){const c=S.days[d];if(!c||(v.u||0)>(c.u||0))S.days[d]=v}
   if(inc.trip&&(inc.trip.u||0)>(S.trip.u||0))S.trip=inc.trip;
   S.deleted=del;save();return S.items.length-n0;
@@ -603,7 +813,7 @@ function openQA(o={}){
 }
 function renderQA(focus){
   const days=tripDays();const actual=mode==='actual'&&qa.day;
-  const wishes=S.items.filter(i=>!i.day&&i.status==='plan'&&i.type!=='travel');
+  const wishes=S.items.filter(i=>!i.day&&i.status==='plan'&&isTask(i));
   openSheet(`<h2>${actual?'📝 Log what we did':'＋ Add to plan'}</h2>
     <input id="qa-title" placeholder="${qa.type==='meal'?'e.g. Ramen dinner, Kuromon lunch…':'What? e.g. Ski lesson, Pokémon Center…'}" value="${esc(qa.title)}" autocomplete="off">
     <div class="seg" style="margin-top:8px">${Object.entries(TYPE).map(([k,v])=>`<button data-a="qa-type" data-v="${k}" class="${qa.type===k?'on':''}">${v.emoji} ${v.label}</button>`).join('')}</div>
@@ -674,8 +884,30 @@ const ACT={
   import:()=>$('#importfile').click(),
   'share-link':()=>sharePwSheet('link'),
   'imp-merge':()=>{const n=mergeData(pendingImport);closeSheet();render();toast(n>0?`Merged ✓ (+${n} items)`:'Merged ✓ newest edits kept')},
-  'imp-replace':()=>{if(!confirm('Replace everything on this phone?'))return;S=pendingImport;S.deleted=S.deleted||{};save();closeSheet();render();toast('Replaced ✓')},
-  reset:()=>{if(confirm('Clear everything on this phone? Download a backup first! You can then load a plan file again.')){S=seed();save();render();toast('Reset ✓')}},
+  'imp-replace':()=>{if(!confirm('Replace everything on this phone?'))return;S=normS(pendingImport);save();closeSheet();render();toast('Replaced ✓')},
+  tray:()=>{trayOpen=!trayOpen;ls.set('jtp-tray',trayOpen?'1':'');render()},
+  tg:el=>{trayGroup=el.dataset.v;ls.set('jtp-tg',trayGroup);render()},
+  pcard:el=>placeSheet(el.dataset.id),
+  'pc-add':()=>{const c=getCard(placeCardId);const day=$('#pc-day').value,st=$('#pc-start').value;if(!st){toast('Pick a start time');return}
+    const it=itemFromCard(c,day,st,$('#pc-dur').value);closeSheet();if(location.hash.startsWith('#/day')||!location.hash){curDay=day;location.hash='#/day/'+day}render();toast(`Added ${it.emoji} ${it.title} · ${dlabel(day)} ${it.start}–${it.end}`)},
+  'card-edit':el=>cardSheet(el.dataset.id),
+  'card-del':()=>{const c=S.cards.find(x=>x.id===curCardId);if(!c||!confirm(`Delete the card “${c.title}”? Events already on the calendar stay.`))return;
+    S.deleted[c.id]=now();S.cards=S.cards.filter(x=>x.id!==c.id);save();closeSheet();render()},
+  'group-new':()=>{const t=prompt('Name of the group (e.g. Kyoto day trip)');if(!t||!t.trim())return;const g=newGroup(t.trim());render();groupSheet(g.id)},
+  'group-edit':el=>groupSheet(el.dataset.id),
+  'group-up':()=>{const gs=[...S.groups].sort((a,b)=>(a.o??0)-(b.o??0));const i=gs.findIndex(g=>g.id===curGroupId);if(i<=0)return;
+    [gs[i-1],gs[i]]=[gs[i],gs[i-1]];gs.forEach((g,k)=>{if(g.o!==k){g.o=k;g.u=now()}});save();render();toast('Moved up')},
+  'group-del':()=>{const g=getGroup(curGroupId);const n=cardsIn(g.id).length;if(!confirm(`Delete the group “${g.title}”?${n?` Its ${n} cards move to 📦 Other.`:''}`))return;
+    S.deleted[g.id]=now();S.groups=S.groups.filter(x=>x.id!==g.id);if(trayGroup===g.id){trayGroup='~';ls.set('jtp-tg','~')}save();closeSheet();render()},
+  'cards-build':()=>{const n=buildCards();render();toast(n?`🃏 Made ${n} cards from your calendar`:'All your events already have cards')},
+  'to-card':()=>{const it=getItem(curItemId);cardFromItemId=it.id;
+    openSheet(`<h2>🃏 Save as a reusable card</h2><div class="muted">Which bigger plan does “${esc(it.title)}” belong to?</div>
+      <div class="chips wrap" style="margin-top:10px">${S.groups.map(g=>`<button class="chip" data-a="to-card-g" data-v="${g.id}">${esc(g.emoji)} ${esc(g.title)}</button>`).join('')}<button class="chip" data-a="to-card-g" data-v="__new">＋ New group…</button></div>`)},
+  'to-card-g':el=>{const it=getItem(cardFromItemId);let gid=el.dataset.v;
+    if(gid==='__new'){const t=prompt('Name of the group (e.g. Kyoto day trip)',it.area||'');if(!t||!t.trim())return;gid=newGroup(t.trim(),'🗂️',it.area||'').id}
+    const c=cardFromItem(it,gid);if(!it.card){it.card=c.id;save()}cardSheet(c.id);toast('🃏 Card saved')},
+  back2:()=>{if(history.length>1&&lastRoute)history.back();else location.hash='#/more'},
+  reset:()=>{if(confirm('Clear everything on this phone? Download a backup first! You can then load a plan file again.')){S=normS(seed());save();render();toast('Reset ✓')}},
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;const fn=ACT[el.dataset.a];if(!fn)return;if(el.tagName!=='A'||el.dataset.a!=='close')e.preventDefault();if(el.dataset.a==='close'&&el.tagName==='A'){closeSheet();return}fn(el,e)});
 document.addEventListener('change',e=>{
@@ -693,6 +925,11 @@ document.addEventListener('change',e=>{
   if(ds.ff){const f=getFood(curFoodId);f[ds.ff]=el.value;touch(f);render();return}
   if(ds.pp){const p=person(ds.pid);p[ds.pp]=el.value;touch(p);return}
   if(ds.tf){S.trip[ds.tf]=el.value;touch(S.trip);return}
+  if(ds.cf){const c=S.cards.find(x=>x.id===curCardId);if(!c)return;let v=el.value;
+    if(ds.cf==='g'&&v==='__new'){const t=prompt('Name of the new group (e.g. Kyoto day trip)');if(!t||!t.trim()){el.value=getGroup(c.g)?c.g:'';return}v=newGroup(t.trim(),'🗂️',c.area||'').id}
+    if(ds.cf==='dur')v=+v;if(ds.cf==='subs'||ds.cf==='places')v=v.split('\n').map(x=>x.trim()).filter(Boolean);
+    c[ds.cf]=v;touch(c);if(ds.cf==='type'||ds.cf==='g')cardSheet(c.id);render();return}
+  if(ds.gf){const g=getGroup(curGroupId);if(!g)return;g[ds.gf]=['brk','meal'].includes(ds.gf)?+el.value:el.value;touch(g);render();return}
 });
 document.addEventListener('submit',e=>{
   const form=e.target,kind=form.dataset.form;if(!kind)return;e.preventDefault();const v=form.t.value.trim();
@@ -702,10 +939,11 @@ document.addEventListener('submit',e=>{
   if(kind==='sub-add'){const it=getItem(curItemId);it.subs=it.subs||[];it.subs.push(newSub(v));touch(it)}
   if(kind==='place-add'){const it=getItem(curItemId);it.meal.places.push({id:uid(),name:v,area:'',price:'',note:'',chosen:it.meal.places.length===0});touch(it)}
   if(kind==='food-new'){const f={id:uid(),name:v,zh:'',emoji:'🍽️',region:'Anywhere',tried:{},u:now()};S.foods.push(f);const it=location.hash.startsWith('#/item/')&&getItem(curItemId);if(it&&it.meal){it.meal.foods.push(f.id);touch(it)}else save()}
+  if(kind==='card-add'){newCard({g:form.dataset.g,title:v,area:getGroup(form.dataset.g)?.area||''})}
   if(kind==='wish-add'){S.items.push(newItem({title:v,who:pf?[pf]:[]}));save();toast('⭐ Added to wishlist')}
   if(kind==='person-add'){const cols=['#2b6cb0','#d53f8c','#805ad5','#2f855a','#c05621','#b7791f','#319795','#e53e3e'];S.people.push({id:uid(),name:v,emoji:'🙂',color:cols[S.people.length%cols.length],u:now()});save()}
   render();
-  const again=document.querySelector(`form[data-form="${kind}"] input[name=t]`);if(again&&kind!=='food-new')again.focus();
+  const again=document.querySelector(kind==='card-add'?`form[data-form="card-add"][data-g="${form.dataset.g}"] input[name=t]`:`form[data-form="${kind}"] input[name=t]`);if(again&&kind!=='food-new')again.focus();
 });
 
 /* ====================== router ====================== */
@@ -716,11 +954,14 @@ function render(){
   else if(p[0]==='bucket'){html=viewBucket();tab='bucket'}
   else if(p[0]==='food'){html=viewFood();tab='food'}
   else if(p[0]==='more'){html=viewMore();tab='more'}
+  else if(p[0]==='cards'){html=viewCards();tab='more'}
   else html=viewDay(p[1]);
   $('#app').innerHTML=html;
+  document.body.classList.toggle('tray-on',tab==='day'&&p[0]!=='item'&&trayOpen);
+  document.documentElement.style.setProperty('--navh',$('#nav').offsetHeight+'px');
   document.querySelectorAll('#nav a').forEach(a=>{a.classList.toggle('on',a.dataset.tab===tab);if(a.dataset.tab==='day')a.href='#/day/'+(curDay||'')});
   if(same)window.scrollTo(0,y);
-  else if(tab==='day'&&p[0]!=='item'){
+  else if(tab==='day'&&p[0]!=='item'&&p[0]!=='cards'){
     $('#dc-'+curDay)?.scrollIntoView({inline:'center',block:'nearest'});
     if(scrolledDay!==curDay){scrolledDay=curDay;const n=$('.nowline'),f=$('.blk');window.scrollTo(0,0);if(S.items.length)(n||f)?.scrollIntoView({block:'start'})}
   }else window.scrollTo(0,0);
